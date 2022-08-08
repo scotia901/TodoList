@@ -98,6 +98,10 @@ function deleteTask(taskId) {
     }
 }
 
+function viewUserInfo() {
+    location.href = "/users/profile";
+}
+
 function logout() {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {

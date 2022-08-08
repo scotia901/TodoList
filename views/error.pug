@@ -1,0 +1,15 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        link(rel="stylesheet" href="/css/error.css")
+        title=pageTitle + " - 404 Error : 페이지를 찾을 수 없습니다."
+    body
+        div(id="top")
+            a(id="main_link" href="/")
+                h1 To Do
+        div(id="body")
+            p 해당 URL 페이지를 찾을 수 없습니다.
+            button(onclick="location.href='/';") 확인

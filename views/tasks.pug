@@ -5,7 +5,7 @@ html(lang="ko")
         meta(http-equiv="X-UA-Compatible" content="IE=edge")
         meta(name="viewport" content="width=device-width, initial-scale=1.0")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css")
-        link(rel="stylesheet" href="/css/styles.css")
+        link(rel="stylesheet" href="/css/tasks/styles.css")
         script(type="text/javascript" src="/js/tasks/app.js")
         title=pageTitle + " - " + currentPage
     body
@@ -15,8 +15,9 @@ html(lang="ko")
                 div(id="user_info")
                     a(id="username")=username
                     if isLogined = true
-                        div(id="logout_area")
-                        button(id="logout_btn" name="logout_btn" onclick="logout()") 로그아웃
+                        div
+                            button(id="user_info_btn" name="user_info_btn" onclick="viewUserInfo()") 내정보
+                            button(id="logout_btn" name="logout_btn" onclick="logout()") 로그아웃
             div(id="search_tasks_area")
                 form(onsubmit="event.preventDefault(); searchTasks();", autocomplete="off" method="get") 
                     input(type="text" id="search_text" placeholder="Search")

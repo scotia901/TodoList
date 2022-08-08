@@ -8,7 +8,7 @@ html(lang="ko")
         link(rel="stylesheet" href="/css/users/edit.css")
         title=pageTitle + " - 이메일 변경"
     body
-        div(id="content")  
+        div(id="content")
             div(id="top")
                 a(id="main_link" href="/")
                     h1 To Do
@@ -23,12 +23,14 @@ html(lang="ko")
                     div(class="label_area")
                         label(for="new_email") 새로운 이메일
                     div(class="input_area" id="new_email_input_area")
-                        input(type="email" name="new_email" id="new_email")
+                        input(type="email" name="new_email" id="new_email" autocomplete=false)
                         button(id="send_code_btn") 코드 전송
                 div(class="row" id="auth_code_row" style="display:none")
                     div(class="label_area")
                         label(for="auth_code") 인증 번호
                     div(class="input_area" id="auth_code_input_area")
-                        input(type="text" name="auth_code" id="auth_code" maxlength=5 )
+                        input(type="text" name="auth_code" id="auth_code" maxlength=5 autocomplete=false)
                         button(id="auth_btn") 인증
-                input(type="button" id="change_btn" value="변경하기")
+                div(id="change_btn_area")
+                    input(type="button" id="change_email_btn" value="변경하기")
+                    input(type="button" id="back_btn" value="돌아가기")

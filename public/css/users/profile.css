@@ -1,3 +1,7 @@
+body {
+    background-color: rgb(240, 240, 240);
+}
+
 #top {
     margin: auto;
     margin-top: 50px;
@@ -77,8 +81,8 @@ input:focus {
 #return_btn {
     font-size: 18px;
     font-weight: 400;
-    color: aliceblue;
-    background-color: cadetblue;
+    color: rgb(255, 255, 255);
+    background-color: cadetblue;;
     border: 1px solid;
     border-radius: 4px;
     border-color:rgb(85, 148, 150);
@@ -100,7 +104,7 @@ label {
     font-size: 14px;
     font-weight: 400;
     color: rgb(117, 117, 117);
-    background-color: rgb(240, 240, 240);
+    background-color: rgb(245, 245, 245);
     border: 1px solid;
     border-radius: 4px;
     border-color:rgb(167, 167, 167);
@@ -108,15 +112,29 @@ label {
     width: 80px;
 }
 
+#edit_pswd_btn:hover {
+    background-color: rgb(255, 255, 255);
+}
+
 #edit_email_btn {
     font-size: 14px;
     font-weight: 400;
     color: rgb(117, 117, 117);
-    background-color: rgb(240, 240, 240);
+    background-color: rgb(245, 245, 245);
     border: 1px solid;
     border-radius: 4px;
     border-color:rgb(167, 167, 167);
     cursor: pointer;
     width: 80px;
     float: right;
+}
+
+#edit_email_btn:hover {
+    background-color: rgb(255, 255, 255);
+}
+
+.sidebar {
+    height: 1px;
+    width: 100%;
+    background-color: rgb(220, 220, 220);
 }

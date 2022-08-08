@@ -14,7 +14,7 @@ html(lang="ko")
                     h1 To Do
             h2(id="join_text") 비밀번호 변경
             div(id="main")
-                form(method="post" onsubmit="event.preventDefault(); editPswd();")
+                form(method="post" onsubmit="event.preventDefault(); changePswd();")
                     div(class="row")
                         div(class="join_label_area")
                             label(for="current_pswd") 기존 비밀번호
@@ -30,4 +30,6 @@ html(lang="ko")
                             label(for="new_pswd2") 비밀번호 재확인
                         div(class="input_area" id="new_pswd2_input_area")
                             input(type="password" name="new_pswd2" id="new_pswd2")
-                    input(type="submit" id="submit_btn" value="변경하기")
+                    div(id="submit_btn_area")
+                        input(type="submit" id="change_pswd_btn" value="변경하기")
+                        input(type="button" id="back_btn" value="돌아가기")

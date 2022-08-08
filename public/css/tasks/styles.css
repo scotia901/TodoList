@@ -53,6 +53,20 @@ h2 {
     cursor: pointer;
 }
 
+#user_info_btn {
+    margin: 5px;
+    position: absolute;
+    background-color: rgb(255, 255, 255);
+    border: 1px solid gray;
+    border-radius: 3px;
+    padding: 3px;
+}
+
+#user_info_btn:hover {
+    background-color: rgb(245, 245, 245);
+    cursor: pointer;
+}
+
 #division_line {
     border-top: 1px solid;
     width: 94%;

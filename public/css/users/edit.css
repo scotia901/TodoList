@@ -1,3 +1,7 @@
+body {
+    background-color: rgb(240, 240, 240);
+}
+
 #top {
     margin: auto;
     margin-top: 50px;
@@ -40,6 +44,7 @@ h1 {
     padding: 20px 20px 20px 20px;
     border-color: rgb(180, 180, 180);
     background-color: rgb(253, 253, 253);
+    height: 450px;
 }
 
 .input_area {
@@ -65,7 +70,34 @@ input:focus {
     border-color:black;
 }
 
-#submit_btn {
+#submit_btn_area {
+    align-content: center;
+    margin: 100px 0px 10px 0px;
+    height: 40px;
+}
+
+#change_btn_area {
+    position: absolute;
+    margin: 0px 0px 10px 0px;
+    height: 40px;
+    bottom: -140px;
+}
+
+#back_btn {
+    margin: 0px 0px 0px 5px;
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: rgb(190, 190, 190);
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(200, 200, 200);
+    cursor: pointer;
+    width: 145px;
+}
+
+#change_email_btn {
+    margin: 0px 5px 0px 0px;
     font-size: 18px;
     font-weight: 400;
     color: aliceblue;
@@ -74,15 +106,38 @@ input:focus {
     border-radius: 4px;
     border-color:rgb(85, 148, 150);
     cursor: pointer;
+    width: 145px;
+}
+
+#change_pswd_btn {
+    margin: 0px 5px 0px 0px;
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: cadetblue;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(85, 148, 150);
+    cursor: pointer;
+    width: 145px;
 }
 
 #send_code_btn {
     position: absolute;
-    width: 65px;
     height: 30px;
     float: right;
     transform: translate(-70px, 15px);
     font-size: 12px;
+    background-color: rgb(245, 245, 245);
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(167, 167, 167);
+    cursor: pointer;
+    color: rgb(117, 117, 117);
+}
+
+#send_code_btn:hover {
+    background-color: rgb(255, 255, 255);
 }
 
 #auth_btn {
@@ -92,6 +147,15 @@ input:focus {
     float: right;
     transform: translate(-46px, 15px);
     font-size: 12px;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(167, 167, 167);
+    cursor: pointer;
+    color: rgb(117, 117, 117);
+}
+
+#auth_btn:hover {
+    background-color: rgb(255, 255, 255);
 }
 
 label {
