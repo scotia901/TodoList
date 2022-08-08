@@ -1,0 +1,41 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(type="text/javascript" src="/js/users/app.js")
+        link(rel="stylesheet" href="/css/users/join.css")
+        title=pageTitle + " - 회원가입"
+    body
+        div(id="content")  
+            div(id="top")
+                a(id="main_link" href="/")
+                    h1 To Do
+            h2(id="join_text") 회원가입
+            div(id="main")
+                form(onsubmit="event.preventDefault();", autocomplete="off" method="post") 
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="id") 아이디
+                        div(class="join_input_area" id="id_input_area")
+                            input(type="text" name="id" id="id")
+                        div(id="id_")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="pswd1") 비밀번호
+                        div(class="join_input_area" id="pswd1_input_area")
+                            input(type="password" name="pswd1" id="pswd1")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="pswd2") 비밀번호 재확인
+                        div(class="join_input_area" id="pswd2_input_area")
+                            input(type="password" name="pswd2" id="pswd2")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="email") 이메일
+                        div(class="join_input_area" id="email_input_area")
+                            input(type="email" name="email" id="email")
+                    div(id="join_btn_area")
+                        button(type="submit" id="join_btn") 가입하기
+    

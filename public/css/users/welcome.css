@@ -1,0 +1,33 @@
+#content {
+    margin: auto;
+    margin-top: 200px;
+    width: 50%;
+}
+
+#main {
+    margin-bottom: 300px;
+}
+
+h1 {
+    text-align: center;
+}
+
+#button {
+    margin: auto;
+    width: 50%;
+    text-align: center;
+}
+
+a {
+    text-decoration: none;
+    color: aliceblue;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 100px;
+    padding-right: 100px;
+    border: solid .1em;
+    background-color: cadetblue;
+    border-color: gray;
+    border-radius: 0.5em;
+    list-style: none;
+}

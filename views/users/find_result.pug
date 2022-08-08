@@ -1,0 +1,31 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        link(rel="stylesheet" href="/css/users/welcome.css")
+        if findType == "id"
+            title=pageTitle + " - 아이디 찾기 완료"
+        else
+            title=pageTitle + " - 비밀번호 변경 메일 전송" 
+    body
+        div(id="content")  
+            div(id="main")
+                if findType == "id"
+                    if users.length > 0
+                        h1 아이디 조회 결과
+                        
+                        div(id="user_list" style="text-align: center")
+                            each name in users
+                                li(style="font-size: 25px; margin: 10px 0 10px 0")=name
+                    else
+                        h1 입력하신 이메일로 가입된 아이디가 존재하지 않습니다.
+                else if findType == "pswd"
+                    h1 비밀번호 변경요청이 되었습니다.
+                    h1=email
+                    h1 위의 이메일 주소에서 메일을 확인해주세요.
+                else
+                    h1 비밀번호를 성공적으로 변경하였습니다 .
+            div(id="button")
+                a(id="main_btn" href="/") 확인

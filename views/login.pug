@@ -1,0 +1,33 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        link(rel="stylesheet" href="/css/login.css")
+        script(type="text/javascript" src="/js/users/login.js")
+        title=pageTitle
+    body 
+        div(id="top")
+            h1 To Do
+        div(id="main")
+            div(id="login")
+                form(onsubmit="event.preventDefault(); login();", autocomplete="off" method="post") 
+                    div(class="login_input_area", id="id_input_area")
+                        label(class="login_label" for="id") 아이디
+                        input(type="text", name="id", id="id")
+                    div(class="login_input_area", id="pswd_input_area")
+                        label(class="login_label" for="pswd") 비밀번호
+                        input(type="password", name="pswd", id="pswd")
+                    div(id="keep_login_area")
+                        input(type="checkbox", name="keep_login", id="keep_login")
+                        label(class="keep_login_label" for="keep_login") 로그인 유지하기
+                    div(id="login_btn_area")
+                        button(id="login_btn" type="submit") 로그인  
+        ul(id="user")
+            div(class="find_user_area") 
+                a(id="find_id_btn" href="/users/find_id") 아이디 찾기
+                a  | 
+                a(id="find_pswd_btn" href="/users/find_pswd") 비밀번호 변경
+            div(class="user_btn_area")
+                a(id="join_btn" href="/users/join") 회원가입

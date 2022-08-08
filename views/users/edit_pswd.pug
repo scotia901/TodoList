@@ -1,0 +1,33 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(type="text/javascript" src="/js/users/edit.js")
+        link(rel="stylesheet" href="/css/users/edit.css")
+        title=pageTitle + " - 회원 정보"
+    body
+        div(id="content")  
+            div(id="top")
+                a(id="main_link" href="/")
+                    h1 To Do
+            h2(id="join_text") 비밀번호 변경
+            div(id="main")
+                form(method="post" onsubmit="event.preventDefault(); editPswd();")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="current_pswd") 기존 비밀번호
+                        div(class="input_area" id="current_pswd_input_area")
+                            input(type="password" name="pswd" id="current_pswd")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="new_pswd1") 비밀번호
+                        div(class="input_area" id="new_pswd1_input_area")
+                            input(type="password" name="new_pswd1" id="new_pswd1")
+                    div(class="row")
+                        div(class="join_label_area")
+                            label(for="new_pswd2") 비밀번호 재확인
+                        div(class="input_area" id="new_pswd2_input_area")
+                            input(type="password" name="new_pswd2" id="new_pswd2")
+                    input(type="submit" id="submit_btn" value="변경하기")

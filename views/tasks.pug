@@ -1,0 +1,59 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible" content="IE=edge")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0")
+        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css")
+        link(rel="stylesheet" href="/css/styles.css")
+        script(type="text/javascript" src="/js/tasks/app.js")
+        title=pageTitle + " - " + currentPage
+    body
+        div(id="sidebar")
+            div(id="user")
+                div(id="user_img")
+                div(id="user_info")
+                    a(id="username")=username
+                    if isLogined = true
+                        div(id="logout_area")
+                        button(id="logout_btn" name="logout_btn" onclick="logout()") 로그아웃
+            div(id="search_tasks_area")
+                form(onsubmit="event.preventDefault(); searchTasks();", autocomplete="off" method="get") 
+                    input(type="text" id="search_text" placeholder="Search")
+                    button(type="submit" id="search_btn")
+                        i(id="search_icon" class="fa fa-search")
+            ul(class="categories_list")
+                button(class="category_btn")="오늘 할 일"
+                button(class="category_btn")="중요"
+                button(class="category_btn")="계획된 일정"
+                button(class="category_btn")="작업"
+            div(id="division_line")
+            ul(class="categories_list")
+                each category in categories
+                    if category.name != "오늘 할 일" && category.name != "중요" && category.name != "계획된 일정" && category.name != "작업"
+                        ul
+                        button(class="category_btn")=category.name
+            div(id="new_list")
+                div(style="position: absolute; float: left; height: 54px;")
+                    button(type="submit" name="new_list_btn" id="new_list_btn" onclick="addCategory()") 목록 추가
+                    label(for="new_list_btn")
+                div(style="height:100%; margin-left: 45px")
+                    input(type="text" name="new_list_name" id="new_list_name" placeholder="새 목록" autocomplete="off")
+        div(id="content")
+            div(id="top")
+                div(id="title")
+                    h1(id="category_title")=currentPage
+                if currentPage == "오늘 할 일"
+                    div(id="today_area")
+                        h2= today
+                if currentPage != "오늘 할 일" && currentPage != "중요" && currentPage != "계획된 일정" && currentPage != "작업" && currentPage != "검색 결과"
+                    div(id="delete_category_area")
+                        button(id="delete_category" onclick="deleteCategory()") 삭제
+            |!{tasks}
+            //- div(id="post_todo")
+            form(id="post_todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 
+                div(style="position: absolute; float: left; height: 54px;")
+                    button(type="submit" name="post_btn" id="post_task_btn") 작업 추가
+                    label(for="post_task_btn")
+                div(style="height:100%; margin-left: 45px")
+                    input(type="text" name="post_msg" id="post_task_msg" placeholder="작업 추가" autocomplete="off")

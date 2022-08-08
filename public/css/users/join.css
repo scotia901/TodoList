@@ -1,0 +1,99 @@
+#top {
+    margin: auto;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    width: 200px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 60px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    color: black;
+    text-decoration: none;
+}
+
+#main_link:link {
+    text-decoration: none;
+}
+
+#main_link:visited {
+    text-decoration: none;
+}
+
+#join_text {
+    margin: auto;
+    margin-top: 50px;
+    margin-bottom: 15px;
+    width: 50%;
+    text-align: center;
+    transform: translateX(-110px);
+}
+
+#main {
+    margin: auto;
+    margin-bottom: 50px;
+    width: 300px;
+    text-align: left;
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 20px 20px 20px 20px;
+    border-color: rgb(180, 180, 180);
+    background-color: rgb(253, 253, 253);
+}
+
+.join_input_area {
+    height: 30px;
+    margin-top: 5px;
+    margin-bottom: 60px;
+}
+
+input {
+    width: 290px;
+    height: 100%;
+    margin-top: 10px;
+    border-color: rgb(180, 180, 180);
+    border-radius: 4px;
+    border-width: 1px;
+    border-style: solid;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+input:focus {
+    outline: none;
+    border-color:black;
+}
+
+#join_btn_area {
+    margin: 100px 0px 10px 0px;
+    height: 40px;
+}
+
+#join_btn {
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: cadetblue;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(85, 148, 150);
+    cursor: pointer;
+}
+
+button {
+    width: 100%;
+    height: 100%;
+}
+
+label {
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 돋움체;
+}
+
+.error_msg {
+    margin-top: 3px;
+    color: orangered;
+    font-size: 14px;
+}

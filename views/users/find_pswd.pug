@@ -1,0 +1,29 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(type="text/javascript" src="/js/users/app.js")
+        link(rel="stylesheet" href="/css/users/find_user.css")
+        title=pageTitle + " - 비밀번호 찾기"
+    body
+        div(id="content")
+            div(id="top")
+                a(id="main_link" href="/")
+                    h1 To Do
+            h2(id="find_pswd_text") 비밀번호 찾기
+            div(id="main")
+                form(method="post" onsubmit="event.preventDefault(); findPswd();")
+                    div(class="row")
+                        div(class="find_label_area")
+                            label(for="id") 아이디
+                        div(id="id_input_area" class="find_input_area")
+                            input(type="text" id="id" name="id")
+                    div(class="row")
+                        div(class="find_label_area")
+                            label(for="email") 이메일
+                        div(id="email_input_area" class="find_input_area")
+                            input(type="text" id="email" name="email")
+                    div(id="find_btn_area")
+                        input(type="submit" id="find_btn" value="찾기")
