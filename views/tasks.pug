@@ -11,7 +11,9 @@ html(lang="ko")
     body
         div(id="sidebar")
             div(id="user")
-                div(id="user_img")
+                div(id="user_img_area" onclick="viewUserInfo()")
+                        if userimg
+                            img(name="user_img" id="user_img" src="/data/uploads/img/" + userimg style="width: 50px; height: 50px")
                 div(id="user_info")
                     a(id="username")=username
                     if isLogined = true
@@ -58,3 +60,4 @@ html(lang="ko")
                     label(for="post_task_btn")
                 div(style="height:100%; margin-left: 45px")
                     input(type="text" name="post_msg" id="post_task_msg" placeholder="작업 추가" autocomplete="off")
+    include ./users/script/default_img.pug

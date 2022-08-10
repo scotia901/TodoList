@@ -6,6 +6,8 @@ window.addEventListener('load', (e) => {
     resizeTasks();
 });
 
+
+
 function toggleImportance(taskId) {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -229,3 +231,5 @@ function getCookie(name) {
         return null;
     }
 }
+
+

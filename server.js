@@ -63,11 +63,13 @@ async function main () {
                     const username = req.session.username;
                     const isLogined = req.session.isLogined;
                     const authNewEmail = req.session.authNewEmail;
+                    const userimg = req.session.userimg;
                     req.session.regenerate((err) => {
                         if (err) throw err;
                         req.session.authNewEmail = authNewEmail;
                         req.session.referrer = req.protocol + "://" + req.get("host") + req.originalUrl;
                         req.session.username = username;
+                        req.session.userimg = userimg;
                         req.session.isLogined = isLogined;
                         req.session.save((err) => {
                             if (err) throw err;

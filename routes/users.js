@@ -1,7 +1,22 @@
+const UPLOAD_IMG_PATH = "public/data/uploads/img"
 require('dotenv').config();
 const crypto = require('node:crypto');
+const fs = require('fs');
 const mysql = require('mysql2/promise');
 const express = require('express');
+const path = require('path');
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, UPLOAD_IMG_PATH);
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = Math.round(Math.random() * 1E15);
+        const ext = path.extname(file.originalname);
+        cb(null, uniqueName + ext)
+    }
+});
+const upload = multer({ storage: storage });
 const nodemailer = require('nodemailer');
 const idFormat = /^[\w-]{5,20}$/;
 const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -93,8 +108,7 @@ router.post('/login', async (req, res) => {
         if (!idFormat.test(req.body.username) || !pswdFormat.test(req.body.password)) throw 'invalid format'
         
         const usersConnection = await mysql.createConnection(usersDbOptions);
-        const [results] = await usersConnection.execute(`SELECT username, password_hash, password_salt, password_iter FROM users WHERE username = "${req.body.username}"`);
-        
+        const [results] = await usersConnection.execute(`SELECT username, user_img, password_hash, password_salt, password_iter FROM users WHERE username = "${req.body.username}"`);
         if(results.length > 0) {
             const keylen = 128;
             const digest = 'sha512';
@@ -115,6 +129,7 @@ router.post('/login', async (req, res) => {
                         }
                         req.session.isLogined = true;
                         req.session.username = results[0].username;
+                        req.session.userimg = results[0].user_img;
                         if(!req.session.currentCategory) req.session.currentCategory = "오늘 할 일";
                         req.session.save(async (err) => {
                             if (err) throw err;
@@ -378,20 +393,73 @@ router.post('/sample', async (req, res) => {
 router.get('/profile', async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(usersDbOptions);
-        const [results] = await usersConnection.execute(`SELECT username, email FROM users WHERE username = "${req.session.username}"`);
+        const [results] = await usersConnection.execute(`SELECT username, user_img, email FROM users WHERE username = "${req.session.username}"`);
         const username = results[0].username;
+        const userImg = results[0].user_img;
         let [emailUser, emailDomain] = results[0].email.split("@");
         const [emailname, domain]= emailDomain.split(".");
         emailUser = emailUser.substring(0,2) + emailUser.substring(2,).replace(/./g, "*");
-        emailDomain = emailname.substring(0,2) + emailname.substring(2,).replace(/./g, "*")+"."+domain;
+        emailDomain = emailname.substring(0,2) + emailname.substring(2,).replace(/./g, "*") + "." + domain;
         const hiddenEmail = emailUser + "@" + emailDomain;
 
         await usersConnection.end();
         res.render('users/profile', {
             "pageTitle": process.env.PAGE_TITLE,
             "username": username,
+            "userimg": userImg,
             "email": hiddenEmail
         });
+    } catch (error) {
+        res.sendStatus(400);
+    }
+});
+
+router.post('/profile', upload.single('uploaded_file'), async (req, res) => {
+    try {
+        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
+        console.log(field);
+        if(field) {
+            const imgPath = UPLOAD_IMG_PATH + "/" + field[0].user_img;
+
+            fs.stat(imgPath, (err, stats) => {
+                if (!err) {
+                    fs.unlink(imgPath, (err) => {
+                        if(err) throw err;
+                    });
+                }
+            });
+        }
+
+        await usersConnection.execute(`UPDATE users SET user_img="${req.file.filename}" WHERE username="${req.session.username}"`);
+        await usersConnection.end();
+        req.session.userimg = req.file.filename;
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(400);
+    }
+});
+
+router.delete('/profile/img', async (req, res) => {
+    try {
+        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
+        if(field) {
+            const imgPath = UPLOAD_IMG_PATH + "/" + field[0].user_img;
+
+            fs.stat(imgPath, (err, stats) => {
+                if (!err) {
+                    fs.unlink(imgPath, (err) => {
+                        if(err) throw err;
+                    });
+                }
+            });
+        }
+
+        await usersConnection.execute(`UPDATE users SET user_img= NULL WHERE username="${req.session.username}"`);
+        await usersConnection.end();
+        req.session.userimg = "";
+        res.sendStatus(200);
     } catch (error) {
         res.sendStatus(400);
     }

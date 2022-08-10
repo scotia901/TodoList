@@ -154,7 +154,7 @@ router.get('/', async (req, res) => {
                 weekday: 'long'
             };
             const today = new Intl.DateTimeFormat('ko-KR', dateOptions).format(new Date());
-            
+            console.log(req.session.userimg);
             manager.category = category;
             manager.user = req.session.username;
             await connection.end();
@@ -164,6 +164,7 @@ router.get('/', async (req, res) => {
                 "pageTitle": process.env.PAGE_TITLE,
                 "today": today,
                 "username": req.session.username,
+                "userimg": req.session.userimg,
                 "categories": categories,
                 "currentPage": category,
                 "tasks": manager.html
