@@ -10,7 +10,6 @@ function init() {
     var authBtn = document.getElementById("auth_btn");
     var backBtn = document.getElementById("back_btn");
     var changeEmailBtn = document.getElementById("change_email_btn");
-    // var changePswdBtn = document.getElementById("change_pswd_btn");
 
     if(currentEmail) currentEmail.addEventListener('change', verifyCurrentEmail);
     if(newEmail) newEmail.addEventListener('change', verifyNewEmail);
@@ -19,14 +18,9 @@ function init() {
     if(newPswd2) newPswd2.addEventListener('change', verifyNewPswd2);
     if(sendAuthBtn) sendAuthBtn.addEventListener('click', sendCode);
     if(authBtn) authBtn.addEventListener('click', authenticateCode);
-    if(backBtn) backBtn.addEventListener('click', backToTasks);
+    if(backBtn) backBtn.addEventListener('click', goTasks);
     if(changeEmailBtn) changeEmailBtn.addEventListener('click', changeEmail);
-    // if(changePswdBtn) changePswdBtn.addEventListener('click', changePswd);
 }
-
-window.onload = function() {
-    init();
-};
 
 function appendErrorMsg(elementId, errorMsg) {
     if (!document.getElementById(elementId)) {
@@ -110,15 +104,17 @@ function verifyNewPswd2() {
 
 function sendCode() {
     verifyNewEmail();
+
     if (document.getElementsByClassName("error_msg").length == 0) {
-        let newEmailValue = document.getElementById("new_email").value;
         let sendCodeBtn = document.getElementById("send_code_btn");
-        let params = "email=" + newEmailValue;
+        
+        const params = "email=" + document.getElementById("new_email").value;
         let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
                 let authCodeArea = document.getElementById("auth_code_row");
                 let authCodeInput = document.getElementById("auth_code");
+
                 alert("새로운 이메일로 인증 번호가 전송 되었습니다.");
                 sendCodeBtn.disabled = false;
                 authCodeInput.value = ""
@@ -140,9 +136,9 @@ function sendCode() {
 
 function authenticateCode() {
     if (document.getElementsByClassName("error_msg").length == 0) {
-        const codeValue = document.getElementById("auth_code").value;
-        const newEmailValue = document.getElementById("new_email").value;
-        let params = "email=" + newEmailValue +"&code=" + codeValue;
+        const params = "email=" + document.getElementById("new_email").value + 
+                     "&code=" + document.getElementById("auth_code").valuecodeValue;
+
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
@@ -182,10 +178,10 @@ function changeEmail() {
     verifyCurrentEmail();
     verifyNewEmail();
     if(isAuthCode && document.getElementsByClassName("error_msg").length == 0) {
-        let codeValue = document.getElementById("auth_code").value;
-        let currentEmailValue = document.getElementById("current_email").value;
-        let newEmailValue = document.getElementById("new_email").value;
-        let params = "currentEmail=" + currentEmailValue +"&newEmail=" + newEmailValue + "&code=" + codeValue;
+        const params = "currentEmail=" + document.getElementById("current_email").value + 
+                     "&newEmail=" + document.getElementById("new_email").value + 
+                     "&code=" + document.getElementById("auth_code").value;
+
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
@@ -206,10 +202,11 @@ function changePswd() {
     verifyCurrentPswd();
     verifyNewPswd1();
     verifyNewPswd2();
+
     if(document.getElementsByClassName("error_msg").length == 0) {
-        let currentPswdValue = document.getElementById("current_pswd").value;
-        let newPswdValue = document.getElementById("new_pswd1").value;
-        let params = "currentPswd=" + currentPswdValue +"&newPswd=" + newPswdValue;
+        const params = "currentPswd=" + document.getElementById("current_pswd").value + 
+                     "&newPswd=" + document.getElementById("new_pswd1").value;
+
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
@@ -226,6 +223,10 @@ function changePswd() {
     }
 }
 
-function backToTasks() {
+function goTasks() {
     location.href = "/users/profile";
 }
+
+window.onload = function(e) {  
+    init();
+};

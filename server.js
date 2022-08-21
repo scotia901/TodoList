@@ -7,7 +7,7 @@ async function main () {
     const session = require('express-session');
     const MySQLStore = require('express-mysql-session')(session);
     const cookieParser = require('cookie-parser');
-    const dbOptions = {
+    const sessDbOptions = {
         host: process.env.MYSQL_HOST,
         port: process.env.MYSQL_PORT,
         user: process.env.MYSQL_USER,
@@ -18,9 +18,9 @@ async function main () {
         queueLimit: process.env.MYSQL_QUEUE_LIMIT
     };
     const halfHour = 1800000;
-    const connection = mysql.createPool(dbOptions);
-    const sessionStore = new MySQLStore({}, connection);
-    const sess = {
+    const connSessDb = mysql.createPool(sessDbOptions);
+    const sessionStore = new MySQLStore({}, connSessDb);
+    const sessOptions = {
         secret: process.env.SESSION_SECRET,
         resave: true,
         store: sessionStore,
@@ -36,12 +36,52 @@ async function main () {
 
     app.set('view engine', 'pug');
     app.set('views', [path.join(__dirname, 'views'), path.join(__dirname, 'views/users')]);
-    app.use(session(sess));
+    app.use(session(sessOptions));
     app.use(express.static('public'));
     app.use(express.urlencoded({ extended: false }));
     app.use(cookieParser());
     app.use(express.json());
+    
+    // app.use((req, res, next) => {
+    //     try {
+    //         if(req.session.isLogined == true) {
+    //             const elapsedTime = req.session.cookie.originalMaxAge - req.session.cookie.maxAge;
+    //             const refreshTime = 1000;
+    //             if(elapsedTime > refreshTime) {
+    //                 const username = req.session.username;
+    //                 const isLogined = req.session.isLogined;
+    //                 const authNewEmail = req.session.authNewEmail;
+    //                 const userimg = req.session.userimg;
+    //                 req.session.regenerate((err) => {
+    //                     if (err) throw err;
+    //                     req.session.authNewEmail = authNewEmail;
+    //                     req.session.referrer = req.protocol + "://" + req.get("host") + req.originalUrl;
+    //                     req.session.username = username;
+    //                     req.session.userimg = userimg;
+    //                     req.session.isLogined = isLogined;
+    //                     req.session.save((err) => {
+    //                         if (err) throw err;
+    //                     });
+    //                     next();
+    //                 });
+    //             } else {
+    //                 next();
+    //             }
+    //         } else {
+    //             if(req.get("host") + req.get(req.originalUrl) == req.get("host") + "/"){
+    //                 res.status(200).send('<script>location.href="/";</script>');
+    //             } else {
+    //                 next();
+    //             }
+    //         }
+    //     } catch (error) {
+    //         res.statusCode(400);
+    //     }
+    // });
 
+    app.use('/tasks', tasks);
+    app.use('/users', users);
+    
     app.get('/', (req, res) => {
         try {
             if(req.session.isLogined == true) {
@@ -53,45 +93,6 @@ async function main () {
             res.status(400).send();
         }
     });
-
-    app.use((req, res, next) => {
-        try {
-            if(req.session.isLogined == true) {
-                const elapsedTime = req.session.cookie.originalMaxAge - req.session.cookie.maxAge;
-                const refreshTime = 1000;
-                if(elapsedTime > refreshTime) {
-                    const username = req.session.username;
-                    const isLogined = req.session.isLogined;
-                    const authNewEmail = req.session.authNewEmail;
-                    const userimg = req.session.userimg;
-                    req.session.regenerate((err) => {
-                        if (err) throw err;
-                        req.session.authNewEmail = authNewEmail;
-                        req.session.referrer = req.protocol + "://" + req.get("host") + req.originalUrl;
-                        req.session.username = username;
-                        req.session.userimg = userimg;
-                        req.session.isLogined = isLogined;
-                        req.session.save((err) => {
-                            if (err) throw err;
-                        });
-                        next();
-                    });
-                } else {
-                    next();
-                }
-            } else {
-                if(req.get("host") + req.get(req.originalUrl) == req.get("host") + "/"){
-                    res.status(200).send('<script>location.href="/";</script>');
-                } else {
-                    next();
-                }
-            }
-        } catch (error) {
-            res.statusCode(400);
-        }
-    });
-    app.use('/tasks', tasks);
-    app.use('/users', users);
 
     app.listen(process.env.SERVER_PORT, () => {
         let appOpenTime = new Date();
@@ -115,4 +116,3 @@ async function main () {
 }
 
 main();
-

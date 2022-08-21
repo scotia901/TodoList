@@ -7,6 +7,7 @@ html(lang="ko")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css")
         link(rel="stylesheet" href="/css/tasks/styles.css")
         script(type="text/javascript" src="/js/tasks/app.js")
+        script(type="text/javascript" src="/js/users/default_img.js")
         title=pageTitle + " - " + currentPage
     body
         div(id="sidebar")
@@ -53,11 +54,9 @@ html(lang="ko")
                     div(id="delete_category_area")
                         button(id="delete_category" onclick="deleteCategory()") 삭제
             |!{tasks}
-            //- div(id="post_todo")
             form(id="post_todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 
                 div(style="position: absolute; float: left; height: 54px;")
                     button(type="submit" name="post_btn" id="post_task_btn") 작업 추가
                     label(for="post_task_btn")
                 div(style="height:100%; margin-left: 45px")
                     input(type="text" name="post_msg" id="post_task_msg" placeholder="작업 추가" autocomplete="off")
-    include ./users/script/default_img.pug

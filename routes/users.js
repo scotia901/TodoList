@@ -1,11 +1,12 @@
-const UPLOAD_IMG_PATH = "public/data/uploads/img"
 require('dotenv').config();
+const UPLOAD_IMG_PATH = "c/uploads/img"
 const crypto = require('node:crypto');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 const express = require('express');
 const path = require('path');
 const multer = require('multer');
+const mailer = require('./mailer');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, UPLOAD_IMG_PATH);
@@ -17,22 +18,22 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
-const nodemailer = require('nodemailer');
 const idFormat = /^[\w-]{5,20}$/;
 const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 const pswdFormat = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{8,20}$/;
-const usersDbOptions = {
+const todoDbOptions = {
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_USERS_DATABASE
+    database: process.env.MYSQL_TODO_DATABASE
 }
-const tokenssDbOptions = {
+const tokensDbOptions = {
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_TOKEN_DATABASE
 }
+const mail = new mailer();
 const router = express.Router();
 
 function hashPassword(pswd) {
@@ -54,60 +55,12 @@ function hashPassword(pswd) {
     } catch (error) {
         if(err) throw 'failure encrypt password';
     }
-
-}
-
-async function sendmail(type, toEmail, username, code) {
-    try {
-        const transport = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD
-            },
-        });
-        let subjectText, bodyText;
-    
-        if(type == "resetPswd") {
-            subjectText = "ToDo 비밀번호 변경 메일";
-            bodyText = `<div>${process.env.SERVER_HOST}:${process.env.SERVER_PORT} 에서 ${username} 님이 비밀번호 초기화를 요청하였습니다.</div><br>
-            비밀번호 변경을 원하시면 아래의 버튼 클릭하시고 비밀번호를 변경하여 주세요.<br><br>
-            <a href="${process.env.SERVER_HOST}:${process.env.SERVER_PORT}/users/find_pswd/reset?&code=${encodeURIComponent(code)}">
-            비밀번호 변경하기</a>`;
-        } else if(type == "authJoin") {
-            subjectText = "Todo 가입 인증 메일"
-            bodyText = `<div>${process.env.SERVER_HOST}:${process.env.SERVER_PORT} 에서 ${username} 님이 가입을 요청 하셨습니다.</div><br>
-            아래의 버튼을 누르시면 가입이 완료됩니다.<br><br>
-            <a href="${process.env.SERVER_HOST}:${process.env.SERVER_PORT}/users/join/auth?&code=${encodeURIComponent(code)}">
-            가입 완료하기</a>`;
-        } else if(type = "authEdit") {
-            subjectText = "Todo 회원 정보 변경 메일"
-            bodyText = `<div>${process.env.SERVER_HOST}:${process.env.SERVER_PORT} 에서 ${username} 님이 회원 정보 변견을 요청 하셨습니다.</div><br>
-            아래의 5자리 숫자를 인증코드 창에 넣으셔서 인증을 완료해주세요..<br><br>
-            <a>${code}</a>`;
-        } else {
-            throw 'Unknown mail type';
-        }
-        
-        await transport.sendMail({
-            from: process.env.ADMIN_EMAIL,
-            to: toEmail,
-            subject: subjectText,
-            html: bodyText
-        });
-        transport.close();
-    } catch (error) {
-        console.log(error);
-    }
 }
 
 router.post('/login', async (req, res) => {
     try {
         if (!idFormat.test(req.body.username) || !pswdFormat.test(req.body.password)) throw 'invalid format'
-        
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [results] = await usersConnection.execute(`SELECT username, user_img, password_hash, password_salt, password_iter FROM users WHERE username = "${req.body.username}"`);
         if(results.length > 0) {
             const keylen = 128;
@@ -147,6 +100,7 @@ router.post('/login', async (req, res) => {
             res.sendStatus(404);
         }
     } catch (error) {
+        console.log(error);
         await usersConnection.end();
         res.statusCode(400);
     }
@@ -163,21 +117,23 @@ router.delete('/logout', (req, res) => {
     }
 });
 
-router.use((req, res, next) => {
-    if(req.session.isLogined == true) {
-        next();
-    } else {
-        res.redirect('/');
-    }
-});
+// 프로필 편집에서 사용 
+// router.use((req, res, next) => {
+//     if(req.session.isLogined == true) {
+//         next();
+//     } else {
+//         res.redirect('/');
+//     }
+// });
 
 router.get('/find_id', (req, res) => {
+    console.log("find_id");
     res.render('users/find_id', { "pageTitle": process.env.PAGE_TITLE });
 });
 
 router.post('/find_id/send', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [results] =  await usersConnection.execute(`SELECT username FROM users WHERE email = "${req.body.email}"`);
         if(results.length > 0) {
             let users = "";
@@ -215,7 +171,7 @@ router.get('/find_pswd', (req, res) => {
 
 router.post('/find_pswd/send', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         let query = `SELECT username, email FROM users WHERE username = "${req.body.id}" AND email = "${req.body.email}"`;
         const [user] = await usersConnection.execute(query);
         if(user.length == 1) {
@@ -256,11 +212,11 @@ router.get('/find_pswd/result', (req, res) => {
 router.post('/reset_pswd/reset', async (req, res) => {
     try {
         if(pswdFormat.test(req.body.password)) {
-            const tokensConnection = await mysql.createConnection(tokenssDbOptions);
+            const tokensConnection = await mysql.createConnection(tokensDbOptions);
             const [results] = await tokensConnection.execute(`SELECT username FROM reset_password WHERE reset_code = "${req.body.code}"`);
             if(results.length == 1) {
                     const pswd = await hashPassword(req.body.password);
-                    const usersConnection = await mysql.createConnection(usersDbOptions);
+                    const usersConnection = await mysql.createConnection(todoDbOptions);
                     await usersConnection.execute('UPDATE users SET password_hash=?, password_salt=?, password_iter=? WHERE username=?', [pswd.hash, pswd.salt, pswd.iterations, results[0].username]);
                     await usersConnection.end();
                     await tokensConnection.end();
@@ -280,7 +236,7 @@ router.post('/reset_pswd/reset', async (req, res) => {
 });
 
 router.get('/reset_pswd/reset', async (req, res) => {
-    const tokensConnection = await mysql.createConnection(tokenssDbOptions);
+    const tokensConnection = await mysql.createConnection(tokensDbOptions);
     const [results] = await tokensConnection.execute(`SELECT username FROM reset_password WHERE reset_code = "${req.query.code}"`);
     if(results.length == 1) {
         await tokensConnection.end();
@@ -292,12 +248,13 @@ router.get('/reset_pswd/reset', async (req, res) => {
 });
 
 router.get('/join', (req, res) => {
+    console.log("load join")
     res.render('users/join', { "pageTitle": process.env.PAGE_TITLE });
 });
 
 router.get('/join/verify/:username', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [rows] = await usersConnection.execute(`SELECT username FROM users WHERE username = "${req.params.username}"`);
         if(rows.length > 0) {
             await usersConnection.end();
@@ -307,6 +264,7 @@ router.get('/join/verify/:username', async (req, res) => {
             res.status(200).send('notExistingUsername');
         }
     } catch (error) {
+        console.log(error);
         await usersConnection.end();
         res.sendStatus(400);
     }
@@ -316,7 +274,7 @@ const verifyJoinForm = async (req, res, next) => {
     if (!idFormat.test(req.body.username) || !emailFormat.test(req.body.email) || !pswdFormat.test(req.body.password)) {
         res.status(400).send('유효하지 않는 데이터');
     } else {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [rows] = await usersConnection.execute(`SELECT username FROM users WHERE email = "${req.body.email}"`);
         if(rows.length > 4) {
             await usersConnection.end();
@@ -338,41 +296,86 @@ router.post('/join/submit', [verifyJoinForm], async (req, res) => {
     try {
         const pswd = await hashPassword(req.body.password);
         const code = crypto.randomBytes(64).toString("base64");
+        console.log(code.length);
         let expireDate = new Date();
         expireDate.setDate(expireDate.getDate() + 1);
-        const query = 'INSERT INTO auth_join (auth_code, username, password_hash, password_salt, password_iter, email, expire_date, auth_code) values(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE auth_code=?';
-        const tokensConnection = await mysql.createConnection(tokenssDbOptions);
-        const [result] = await tokensConnection.execute(query, [code, req.body.username, pswd.hash, pswd.salt, pswd.iterations, req.body.email, expireDate,code]);
-        // usersConnection.execute('INSERT IGNORE INTO users (id, username, password_hash, password_salt, password_iter, email) values (unhex(replace(uuid(),"-","")), ?, ?, ? ,?, ?)', [req.body.username, pswd.hash, pswd.salt, pswd.iterations, req.body.email], 
-        await sendmail(req.body.email, req.body.username, code);
-        res.status(200).send(req.body.email);
+        const query = `INSERT INTO auth_join (
+            auth_code, 
+            username,
+            password_hash,
+            password_salt,
+            password_iter,
+            email,
+            expire_date
+        )
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE auth_code = ?`;
+        const tokensConnection = await mysql.createConnection(tokensDbOptions);
+        await tokensConnection.execute(query, [
+            code, 
+            req.body.username, 
+            pswd.hash, 
+            pswd.salt, 
+            pswd.iterations, 
+            req.body.email, 
+            expireDate, 
+            code
+        ]);
+        mail.type = "authJoin";
+        mail.email = req.body.email;
+        mail.username = req.body.username;
+        mail.code = code;
+        mail.makeForm();
+        await mail.send();
+        res.status(201).send(req.body.email);
         await tokensConnection.end();
-        res.sendStatus(201);
     } catch (error) {
-        await tokensConnection.end();
+        console.log(error);
+        if(tokensConnection) await tokensConnection.end();
         res.sendStatus(400);
     }
 });
 
 router.get('/join/result', (req, res) => {
-    res.render('send_email')
+    res.render('join_result');
 });
 
 router.get('/join/auth', async (req, res) => {
     try {
-        const tokensConnection = await mysql.createConnection(tokenssDbOptions);
-        await tokensConnection.execute(`SELECT username FROM auth_join WHERE auth_code = "${req.query.code}"`);
-            if(results.length == 1) {
-                await tokensConnection.execute('INSERT IGNORE INTO users (id, username, password_hash, password_salt, password_iter, email) values (unhex(replace(uuid(),"-","")), ?, ?, ? ,?, ?)', [req.body.username, pswd.hash, pswd.salt, pswd.iterations, req.body.email]);
-                await tokensConnection.end();
-                res.redirect('/join/welcome');
-            } else {
-                await tokensConnection.end();
-                res.status(200).send('error');
-            }
+        const tokensConnection = await mysql.createConnection(tokensDbOptions);
+        const [results] = await tokensConnection.execute(`SELECT * FROM auth_join WHERE auth_code = "${req.query.code}"`);
+        console.log(results);
+        if(results.length == 1) {
+            const usersConnection = await mysql.createConnection(todoDbOptions);
+            await usersConnection.execute(
+                `INSERT IGNORE INTO users(
+                    id, 
+                    username, 
+                    password_hash, 
+                    password_salt, 
+                    password_iter, 
+                    email
+                )
+                VALUES(unhex(replace(uuid(),"-","")), ?, ?, ?, ?, ?)`,
+                [
+                    results[0].username, 
+                    results[0].password_hash,
+                    results[0].password_salt, 
+                    results[0].password_iter, 
+                    results[0].email
+                ]);
+            await tokensConnection.end();
+            await usersConnection.end();
+            res.redirect('/join/welcome');
+        } else {
+            if (tokensConnection) await tokensConnection.end();
+            res.status(200).send('error');
+        }
     } catch (error) {
-        await tokensConnection.end();
-        res.status(400).send();
+        console.log(error);
+        if (tokensConnection) await tokensConnection.end();
+        if (usersConnection) await usersConnection.end();
+        res.sendStatus(400);
     }
 });
 
@@ -381,7 +384,7 @@ router.get('/join/error', (req, res) => {
 });
 
 router.get('/join/welcome', (req, res) => {
-    res.render('welcome', { "pageTitle": process.env.PAGE_TITLE } );
+    res.render('users/welcome', { "pageTitle": process.env.PAGE_TITLE } );
 });
 
 router.post('/sample', async (req, res) => {
@@ -392,7 +395,7 @@ router.post('/sample', async (req, res) => {
 
 router.get('/profile', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [results] = await usersConnection.execute(`SELECT username, user_img, email FROM users WHERE username = "${req.session.username}"`);
         const username = results[0].username;
         const userImg = results[0].user_img;
@@ -416,7 +419,7 @@ router.get('/profile', async (req, res) => {
 
 router.post('/profile', upload.single('uploaded_file'), async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
         console.log(field);
         if(field) {
@@ -442,7 +445,7 @@ router.post('/profile', upload.single('uploaded_file'), async (req, res) => {
 
 router.delete('/profile/img', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(usersDbOptions);
+        const usersConnection = await mysql.createConnection(todoDbOptions);
         const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
         if(field) {
             const imgPath = UPLOAD_IMG_PATH + "/" + field[0].user_img;
@@ -491,7 +494,14 @@ router.post('/profile/edit/send_code', async (req, res) => {
         if(!emailFormat.test(email)) throw 'invalid format';
         const randomCode =  Math.floor(10000 + Math.random() * 90900);
         req.session.authNewEmail = {"email": email, "code": randomCode};
-        await sendmail("authEdit", email, req.session.username, randomCode);
+
+        mail.type = "authEdit";
+        mail.email = email;
+        mail.username = req.session.username;
+        mail.code = randomCode;
+        mail.toHtml();
+        await mail.send();
+
         res.sendStatus(200);
     } catch (error) {
         res.sendStatus(400);
@@ -514,7 +524,7 @@ router.post('/profile/edit/auth_code', (req, res) => {
 router.put('/profile/edit/email/change', async (req, res) => {
     try {
         if(req.session.authNewEmail.email == req.body.newEmail && req.session.authNewEmail.code == req.body.code) {
-            const usersConnection = await mysql.createConnection(usersDbOptions);
+            const usersConnection = await mysql.createConnection(todoDbOptions);
             const [results] = await usersConnection.execute(`SELECT id FROM users WHERE email = "${req.body.currentEmail}" AND username = "${req.session.username}"`)
             if(results) {
                 await usersConnection.execute(`UPDATE users SET email = "${req.session.authNewEmail.email}" WHERE username = "${req.session.username}"`);
@@ -535,7 +545,7 @@ router.put('/profile/edit/email/change', async (req, res) => {
 
 router.put('/profile/edit/pswd/change', async (req, res) => {
     try {
-            const usersConnection = await mysql.createConnection(usersDbOptions);
+            const usersConnection = await mysql.createConnection(todoDbOptions);
             const [results] = await usersConnection.execute(`SELECT password_hash, password_salt, password_iter FROM users WHERE username = "${req.session.username}"`)
             
             if(results) {
