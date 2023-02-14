@@ -1,5 +1,5 @@
 doctype html
-html(lang="en")
+html(lang="ko")
     head
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
@@ -11,5 +11,5 @@ html(lang="en")
             a(id="main_link" href="/")
                 h1 To Do
         div(id="body")
-            p 해당 URL 페이지를 찾을 수 없습니다.
+            p=status + " " + errMsg
             button(onclick="location.href='/';") 확인

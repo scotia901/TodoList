@@ -1,5 +1,6 @@
 require('dotenv').config();
-const UPLOAD_IMG_PATH = "c/uploads/img"
+const userController = require('../controllers/userController');
+const PROFILE_IMG_PATH = process.env.PROFILE_IMG_PATH;
 const crypto = require('node:crypto');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
@@ -7,9 +8,10 @@ const express = require('express');
 const path = require('path');
 const multer = require('multer');
 const mailer = require('./mailer');
+const { query } = require('../db');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, UPLOAD_IMG_PATH);
+        cb(null, PROFILE_IMG_PATH);
     },
     filename: (req, file, cb) => {
         const uniqueName = Math.round(Math.random() * 1E15);
@@ -21,6 +23,7 @@ const upload = multer({ storage: storage });
 const idFormat = /^[\w-]{5,20}$/;
 const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 const pswdFormat = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{8,20}$/;
+const usernameFormat = /^[\w|가-힣]{2,10}$/
 const todoDbOptions = {
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
@@ -57,18 +60,33 @@ function hashPassword(pswd) {
     }
 }
 
-router.post('/login', async (req, res) => {
+router.get('/login', async (req, res) => {
+    const kakaoKey = process.env.KAKAO_REST_KEY;
+        const naverId = process.env.NAVER_CLIENT_ID;
+        const callbackUrl = encodeURI(process.env.AUTH_CALLBACK_URI);
+        const state = "random_state";
+        let naverApi_url = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=" + naverId + '&redirect_uri=' + callbackUrl + "naver" + '&state=' + state;
+        let kakaoApi_url = "https://kauth.kakao.com/oauth/authorize?&response_type=code&client_id=" + kakaoKey + '&redirect_uri=' + callbackUrl + "kakao" + '&state=' + state;
+        res.render('users/login', {
+            "pageTitle": process.env.PAGE_TITLE,
+            "naverApi_url": naverApi_url,
+            "kakaoApi_url": kakaoApi_url
+        });
+})
+
+router.post('/login', async (req, res, next) => {
     try {
-        if (!idFormat.test(req.body.username) || !pswdFormat.test(req.body.password)) throw 'invalid format'
+        if (!idFormat.test(req.body.user_id) || !pswdFormat.test(req.body.password)) throw new Error("Bad Request");
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [results] = await usersConnection.execute(`SELECT username, user_img, password_hash, password_salt, password_iter FROM users WHERE username = "${req.body.username}"`);
+        const [results] = await usersConnection.execute(`SELECT user_id, user_img, username, password_hash, password_salt, password_iter FROM users WHERE user_id = "${req.body.user_id}"`);
+
         if(results.length > 0) {
             const keylen = 128;
             const digest = 'sha512';
             const pswd = req.body.password;
             const hash = results[0].password_hash;
             const salt = results[0].password_salt.toString();
-            const iterations = results[0].password_iter;
+            const iterations = parseInt(results[0].password_iter.toString());
             const keepLoginAge = 1000000;
 
             crypto.pbkdf2(pswd, salt, iterations, keylen, digest, async (err, derivedKey) => {
@@ -77,12 +95,13 @@ router.post('/login', async (req, res) => {
                     req.session.regenerate( (err) => {
                         if(err) throw err;
                         if(req.body.keepLogin == "true") {
-                            // req.session.cookie.maxAge = keepLoginAge;
-                            // req.session.cookie.expries = new Date(Date.now() + keepLoginAge);
+                            req.session.cookie.maxAge = keepLoginAge;
+                            req.session.cookie.expries = new Date(Date.now() + keepLoginAge);
                         }
                         req.session.isLogined = true;
-                        req.session.username = results[0].username;
+                        req.session.user_id = results[0].user_id;
                         req.session.userimg = results[0].user_img;
+                        req.session.username = results[0].username;
                         if(!req.session.currentCategory) req.session.currentCategory = "오늘 할 일";
                         req.session.save(async (err) => {
                             if (err) throw err;
@@ -91,7 +110,6 @@ router.post('/login', async (req, res) => {
                         });
                     });
                 } else {
-                    await usersConnection.end();
                     res.sendStatus(404);
                 }
             });
@@ -100,66 +118,55 @@ router.post('/login', async (req, res) => {
             res.sendStatus(404);
         }
     } catch (error) {
-        console.log(error);
-        await usersConnection.end();
-        res.statusCode(400);
+        error.status = 400
+        next(error);
     }
 });
 
-router.delete('/logout', (req, res) => {
+router.delete('/logout', async (req, res) => {
     try {
-        req.session.destroy( (err) => {
+        req.session.destroy( async (err) => {
             if(err) throw err;
-            res.sendStatus(200);
+            res.sendStatus(204);
         })
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
-// 프로필 편집에서 사용 
-// router.use((req, res, next) => {
-//     if(req.session.isLogined == true) {
-//         next();
-//     } else {
-//         res.redirect('/');
-//     }
-// });
+router.use((req, res, next) => {
+    let findUrl = /(?:users\/find_)+/;
+    let joinUrl = /(?:users\/join)+/;
+    let loginUrl = /(?:users\/login\/)/;
+
+    if(findUrl.test(req.originalUrl) == false && req.session.isLogined == true) {
+        next();
+    } else if(findUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+        next();
+    } else if(joinUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+        next();
+    } else if(loginUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+        next();
+    } else {
+        res.redirect('/');
+    }
+});
 
 router.get('/find_id', (req, res) => {
-    console.log("find_id");
     res.render('users/find_id', { "pageTitle": process.env.PAGE_TITLE });
 });
 
 router.post('/find_id/send', async (req, res) => {
-    try {
-        const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [results] =  await usersConnection.execute(`SELECT username FROM users WHERE email = "${req.body.email}"`);
-        if(results.length > 0) {
-            let users = "";
-            const usersKey = "users[]=";
-            for await (let user of results) {
-                users +=  "&" + usersKey + user.username;
-            }
-            await usersConnection.end();
-            res.status(201).send(users);
-        } else {
-            await usersConnection.end();
-            res.status(201).send("NotFoundUser");
-        }
-    } catch (error) {
-        await usersConnection.end();
-        res.sendStatus(400);
-    }
+        userController.getUserByEmail(req, res);
 });
 
 router.get('/find_id/results', (req, res) => {
-    if(req.query.users == undefined) {
+    if(!req.query) {
         res.send('render not joined page');
     } else {
         res.render('find_result', {
             "pageTitle": process.env.PAGE_TITLE,
-            "users": req.query.users,
+            "users": req.query.userId,
             "findType": "id"
         });
     }
@@ -172,33 +179,35 @@ router.get('/find_pswd', (req, res) => {
 router.post('/find_pswd/send', async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        let query = `SELECT username, email FROM users WHERE username = "${req.body.id}" AND email = "${req.body.email}"`;
-        const [user] = await usersConnection.execute(query);
+        let userquery = `SELECT user_id, email FROM users WHERE user_id = "${req.body.id}" AND email = "${req.body.email}"`;
+        const [user] = await usersConnection.execute(userquery);
         if(user.length == 1) {
             const code = crypto.randomBytes(64).toString("base64");
             let expireDate = new Date();
             expireDate.setDate(expireDate.getDate() + 1);
 
             const tokensConnection = await mysql.createConnection(tokensDbOptions);
-            let query = 'INSERT INTO reset_password (reset_code, username, expire_date) values(?,?,?) ON DUPLICATE KEY UPDATE reset_code=?';
-            await tokensConnection.execute(query, [code, results[0].username, expireDate, code]);
+            let query = 'INSERT INTO reset_password (reset_code, user_id, expire_date) values(?, ?, ?) ON DUPLICATE KEY UPDATE reset_code=?';
+            await tokensConnection.execute(query, [code, user[0].user_id, expireDate, code]);
 
-            await sendmail("resetPswd",results[0].email, results[0].username, code);
+            mail.type = "resetPswd";
+            mail.email = user[0].email;
+            mail.user_id = user[0].user_id;
+            mail.code = code;
+            mail.makeForm();
+            await mail.send();
             await usersConnection.end();
             await tokensConnection.end();
-            res.status(200).send(results[0].email);
+            res.status(200).send(user[0].email);
         } else {
             await usersConnection.end();
             await tokensConnection.end();
             res.sendStatus(200).send('NotFoundUser');
         }    
     } catch (error) {
-        await usersConnection.end();
-        await tokensConnection.end();
-        res.sendStatus(400);
+        res.sendStatus(500);
     }    
 });
-
 
 router.get('/find_pswd/result', (req, res) => {
     res.render('find_result', {
@@ -209,15 +218,15 @@ router.get('/find_pswd/result', (req, res) => {
     });
 });
 
-router.post('/reset_pswd/reset', async (req, res) => {
+router.post('/find_pswd/reset', async (req, res) => {
     try {
         if(pswdFormat.test(req.body.password)) {
             const tokensConnection = await mysql.createConnection(tokensDbOptions);
-            const [results] = await tokensConnection.execute(`SELECT username FROM reset_password WHERE reset_code = "${req.body.code}"`);
+            const [results] = await tokensConnection.execute(`SELECT user_id FROM reset_password WHERE reset_code = "${req.body.code}"`);
             if(results.length == 1) {
                     const pswd = await hashPassword(req.body.password);
                     const usersConnection = await mysql.createConnection(todoDbOptions);
-                    await usersConnection.execute('UPDATE users SET password_hash=?, password_salt=?, password_iter=? WHERE username=?', [pswd.hash, pswd.salt, pswd.iterations, results[0].username]);
+                    await usersConnection.execute('UPDATE users SET password_hash=?, password_salt=?, password_iter=? WHERE user_id=?', [pswd.hash, pswd.salt, pswd.iterations, results[0].user_id]);
                     await usersConnection.end();
                     await tokensConnection.end();
                     res.status(200).send('OK');
@@ -235,9 +244,9 @@ router.post('/reset_pswd/reset', async (req, res) => {
     }
 });
 
-router.get('/reset_pswd/reset', async (req, res) => {
+router.get('/find_pswd/auth', async (req, res) => {
     const tokensConnection = await mysql.createConnection(tokensDbOptions);
-    const [results] = await tokensConnection.execute(`SELECT username FROM reset_password WHERE reset_code = "${req.query.code}"`);
+    const [results] = await tokensConnection.execute(`SELECT user_id FROM reset_password WHERE reset_code = "${req.query.code}"`);
     if(results.length == 1) {
         await tokensConnection.end();
         res.render('users/reset_pswd', { "pageTitle": process.env.PAGE_TITLE });
@@ -248,43 +257,41 @@ router.get('/reset_pswd/reset', async (req, res) => {
 });
 
 router.get('/join', (req, res) => {
-    console.log("load join")
     res.render('users/join', { "pageTitle": process.env.PAGE_TITLE });
 });
 
-router.get('/join/verify/:username', async (req, res) => {
+router.get('/join/verify/:user_id', async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [rows] = await usersConnection.execute(`SELECT username FROM users WHERE username = "${req.params.username}"`);
+        const [rows] = await usersConnection.execute(`SELECT user_id FROM users WHERE user_id = "${req.params.user_id}"`);
         if(rows.length > 0) {
             await usersConnection.end();
-            res.status(200).send('existingUsername');
+            res.status(200).send('existinguser_id');
         } else {
             await usersConnection.end();
-            res.status(200).send('notExistingUsername');
+            res.status(200).send('notExistinguser_id');
         }
     } catch (error) {
-        console.log(error);
         await usersConnection.end();
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
 const verifyJoinForm = async (req, res, next) => {
-    if (!idFormat.test(req.body.username) || !emailFormat.test(req.body.email) || !pswdFormat.test(req.body.password)) {
+    if (!idFormat.test(req.body.user_id) || !emailFormat.test(req.body.email) || !pswdFormat.test(req.body.password)) {
         res.status(400).send('유효하지 않는 데이터');
     } else {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [rows] = await usersConnection.execute(`SELECT username FROM users WHERE email = "${req.body.email}"`);
+        const [rows] = await usersConnection.execute(`SELECT user_id FROM users WHERE email = "${req.body.email}"`);
         if(rows.length > 4) {
             await usersConnection.end();
             res.status(200).send('maxJoinedUsers');
         } else {
-            const query = `SELECT username FROM users WHERE username = "${req.body.username}"`;
+            const query = `SELECT user_id FROM users WHERE user_id = "${req.body.user_id}"`;
             const [rows] = await usersConnection.execute(query);
             if(rows.length > 0) {
                 await usersConnection.end();
-                res.status(200).send('existingUsername');
+                res.status(200).send('existinguser_id');
             } else {
                 next();
             }
@@ -296,12 +303,11 @@ router.post('/join/submit', [verifyJoinForm], async (req, res) => {
     try {
         const pswd = await hashPassword(req.body.password);
         const code = crypto.randomBytes(64).toString("base64");
-        console.log(code.length);
         let expireDate = new Date();
         expireDate.setDate(expireDate.getDate() + 1);
         const query = `INSERT INTO auth_join (
             auth_code, 
-            username,
+            user_id,
             password_hash,
             password_salt,
             password_iter,
@@ -313,7 +319,7 @@ router.post('/join/submit', [verifyJoinForm], async (req, res) => {
         const tokensConnection = await mysql.createConnection(tokensDbOptions);
         await tokensConnection.execute(query, [
             code, 
-            req.body.username, 
+            req.body.user_id, 
             pswd.hash, 
             pswd.salt, 
             pswd.iterations, 
@@ -323,16 +329,15 @@ router.post('/join/submit', [verifyJoinForm], async (req, res) => {
         ]);
         mail.type = "authJoin";
         mail.email = req.body.email;
-        mail.username = req.body.username;
+        mail.user_id = req.body.user_id;
         mail.code = code;
         mail.makeForm();
         await mail.send();
         res.status(201).send(req.body.email);
         await tokensConnection.end();
     } catch (error) {
-        console.log(error);
         if(tokensConnection) await tokensConnection.end();
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
@@ -344,13 +349,13 @@ router.get('/join/auth', async (req, res) => {
     try {
         const tokensConnection = await mysql.createConnection(tokensDbOptions);
         const [results] = await tokensConnection.execute(`SELECT * FROM auth_join WHERE auth_code = "${req.query.code}"`);
-        console.log(results);
+
         if(results.length == 1) {
             const usersConnection = await mysql.createConnection(todoDbOptions);
             await usersConnection.execute(
                 `INSERT IGNORE INTO users(
                     id, 
-                    username, 
+                    user_id, 
                     password_hash, 
                     password_salt, 
                     password_iter, 
@@ -358,7 +363,7 @@ router.get('/join/auth', async (req, res) => {
                 )
                 VALUES(unhex(replace(uuid(),"-","")), ?, ?, ?, ?, ?)`,
                 [
-                    results[0].username, 
+                    results[0].user_id, 
                     results[0].password_hash,
                     results[0].password_salt, 
                     results[0].password_iter, 
@@ -372,10 +377,9 @@ router.get('/join/auth', async (req, res) => {
             res.status(200).send('error');
         }
     } catch (error) {
-        console.log(error);
         if (tokensConnection) await tokensConnection.end();
         if (usersConnection) await usersConnection.end();
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
@@ -387,18 +391,10 @@ router.get('/join/welcome', (req, res) => {
     res.render('users/welcome', { "pageTitle": process.env.PAGE_TITLE } );
 });
 
-router.post('/sample', async (req, res) => {
-    console.log("테스트")
-    console.log(req.body);
-    res.send(req.body);
-});
-
 router.get('/profile', async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [results] = await usersConnection.execute(`SELECT username, user_img, email FROM users WHERE username = "${req.session.username}"`);
-        const username = results[0].username;
-        const userImg = results[0].user_img;
+        const [results] = await usersConnection.execute(`SELECT user_id, user_img, username, email FROM users WHERE user_id = "${req.session.user_id}"`);
         let [emailUser, emailDomain] = results[0].email.split("@");
         const [emailname, domain]= emailDomain.split(".");
         emailUser = emailUser.substring(0,2) + emailUser.substring(2,).replace(/./g, "*");
@@ -408,22 +404,22 @@ router.get('/profile', async (req, res) => {
         await usersConnection.end();
         res.render('users/profile', {
             "pageTitle": process.env.PAGE_TITLE,
-            "username": username,
-            "userimg": userImg,
+            "user_id": results[0].user_id,
+            "userimg": results[0].user_img,
+            "username": results[0].username,
             "email": hiddenEmail
         });
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
-router.post('/profile', upload.single('uploaded_file'), async (req, res) => {
+router.post('/profile/img', upload.single('uploaded_file'), async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
-        console.log(field);
+        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE user_id="${req.session.user_id}"`);
         if(field) {
-            const imgPath = UPLOAD_IMG_PATH + "/" + field[0].user_img;
+            const imgPath = PROFILE_IMG_PATH + "/" + field[0].user_img;
 
             fs.stat(imgPath, (err, stats) => {
                 if (!err) {
@@ -434,21 +430,21 @@ router.post('/profile', upload.single('uploaded_file'), async (req, res) => {
             });
         }
 
-        await usersConnection.execute(`UPDATE users SET user_img="${req.file.filename}" WHERE username="${req.session.username}"`);
+        await usersConnection.execute(`UPDATE users SET user_img="${req.file.filename}" WHERE user_id="${req.session.user_id}"`);
         await usersConnection.end();
         req.session.userimg = req.file.filename;
         res.sendStatus(200);
     } catch (error) {
-        res.status(400);
+        res.sendStatus(500);
     }
 });
 
 router.delete('/profile/img', async (req, res) => {
     try {
         const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE username="${req.session.username}"`);
+        const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE user_id="${req.session.user_id}"`);
         if(field) {
-            const imgPath = UPLOAD_IMG_PATH + "/" + field[0].user_img;
+            const imgPath = PROFILE_IMG_PATH + "/" + field[0].user_img;
 
             fs.stat(imgPath, (err, stats) => {
                 if (!err) {
@@ -459,12 +455,27 @@ router.delete('/profile/img', async (req, res) => {
             });
         }
 
-        await usersConnection.execute(`UPDATE users SET user_img= NULL WHERE username="${req.session.username}"`);
+        await usersConnection.execute(`UPDATE users SET user_img= NULL WHERE user_id="${req.session.user_id}"`);
         await usersConnection.end();
         req.session.userimg = "";
+        res.sendStatus(204);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+});
+
+router.put('/profile/edit/username', async (req, res) => {
+    try {
+        console.log(req.body.username);
+        if (usernameFormat.test(req.body.username) == true) {
+            const usersConnection = await mysql.createConnection(todoDbOptions);
+            await usersConnection.execute(`UPDATE users SET username = "${req.body.username}" WHERE user_id = "${req.session.user_id}"`);
+        } else {
+            throw 'INVALIED_USERNAME'
+        }
         res.sendStatus(200);
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
@@ -474,7 +485,7 @@ router.get('/profile/edit/password', (req, res) => {
             "pageTitle": process.env.PAGE_TITLE
          });
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
@@ -484,7 +495,7 @@ router.get('/profile/edit/email', (req, res) => {
             "pageTitle": process.env.PAGE_TITLE
          });
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
@@ -497,27 +508,30 @@ router.post('/profile/edit/send_code', async (req, res) => {
 
         mail.type = "authEdit";
         mail.email = email;
-        mail.username = req.session.username;
+        mail.user_id = req.session.user_id;
         mail.code = randomCode;
-        mail.toHtml();
+        mail.makeForm();
         await mail.send();
 
         res.sendStatus(200);
     } catch (error) {
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
 
 router.post('/profile/edit/auth_code', (req, res) => {
     try {
-        if(req.session.authNewEmail.email == req.body.email && req.session.authNewEmail.code == parseInt(req.body.code)) {
-            res.sendStatus(200);
+        if(req.session.authNewEmail) {
+            if(req.session.authNewEmail.email == req.body.email && req.session.authNewEmail.code == parseInt(req.body.code)) {
+                res.sendStatus(200);
+            } else {
+                throw 'not match code'
+            }
         } else {
-            throw 'sessions is expired'
+            throw 'code is expired'
         }
     } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
+        res.status(400).send(error);
     }
 });
 
@@ -525,28 +539,27 @@ router.put('/profile/edit/email/change', async (req, res) => {
     try {
         if(req.session.authNewEmail.email == req.body.newEmail && req.session.authNewEmail.code == req.body.code) {
             const usersConnection = await mysql.createConnection(todoDbOptions);
-            const [results] = await usersConnection.execute(`SELECT id FROM users WHERE email = "${req.body.currentEmail}" AND username = "${req.session.username}"`)
+            const [results] = await usersConnection.execute(`SELECT id FROM users WHERE email = "${req.body.currentEmail}" AND user_id = "${req.session.user_id}"`)
             if(results) {
-                await usersConnection.execute(`UPDATE users SET email = "${req.session.authNewEmail.email}" WHERE username = "${req.session.username}"`);
+                await usersConnection.execute(`UPDATE users SET email = "${req.session.authNewEmail.email}" WHERE user_id = "${req.session.user_id}"`);
                 await usersConnection.end();
                 req.session.authNewEmail = "";
                 res.sendStatus(200);
             } else {
-                throw 'not match code'
+                throw 'abnormal access'
             }
         } else {
-            throw 'incorrect new email or auth code'
+            throw 'not match code'
         }
     } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
+        res.status(400).send(error);
     }
 });
 
 router.put('/profile/edit/pswd/change', async (req, res) => {
     try {
             const usersConnection = await mysql.createConnection(todoDbOptions);
-            const [results] = await usersConnection.execute(`SELECT password_hash, password_salt, password_iter FROM users WHERE username = "${req.session.username}"`)
+            const [results] = await usersConnection.execute(`SELECT password_hash, password_salt, password_iter FROM users WHERE user_id = "${req.session.user_id}"`)
             
             if(results) {
                 const keylen = 128;
@@ -561,8 +574,7 @@ router.put('/profile/edit/pswd/change', async (req, res) => {
                     if(derivedKey.equals(hash)) {
                             if(err) throw err;
                             const pswd = await hashPassword(newPswd);
-                            console.log(pswd.hash);
-                            await usersConnection.execute('UPDATE users SET password_hash=?, password_salt=?, password_iter=? WHERE username=?', [pswd.hash, pswd.salt, pswd.iterations, req.session.username])
+                            await usersConnection.execute('UPDATE users SET password_hash=?, password_salt=?, password_iter=? WHERE user_id=?', [pswd.hash, pswd.salt, pswd.iterations, req.session.user_id])
                             await usersConnection.end();
                             res.sendStatus(200);
                     } else {
@@ -572,11 +584,8 @@ router.put('/profile/edit/pswd/change', async (req, res) => {
                 });
             }
     } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
+        res.sendStatus(500);
     }
 });
-
-
 
 module.exports = router;

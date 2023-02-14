@@ -1,6 +1,23 @@
+const ERROR_DEL_IMG_MSG = "회원 이미지 삭제에 실패 하였습니다.";
+const ERROR_UPLOAD_IMG_MSG = "알수 없는 오류로 인하여 업로드 실패했습니다.";
+const MISMATCH_CODE_MSG = "인증 코드가 틀렸습니다.";
+const EXFIRE_CODE_MSG = "인증 코드가 만료되었습니다.";
+const ABNORMAL_ACCESS_MSG = "비정상적인 접근입니다.";
+const INVALID_EMAIL_MSG = "잘못된 이메일 주소입니다.";
+const INVALID_PSWD_MSG = "8-20자 영어 대소문자, 특수문자, 숫자를 사용해야 합니다.";
+const INVALIED_USERNAME_MSG = "2-10자 영어, 한글을 사용해야 합니다."
+const MISMATCH_PSWD_MSG = "비밀번호가 일치하지 않습니다.";
+const SEND_AUTH_TO_NEW_EMAIL_MSG = "새로운 이메일로 인증 번호가 전송 되었습니다.";
+const SUCCESS_EMAIL_AUTH_MSG = "이메일 인증이 완료되었습니다.";
+const SUCCESS_NEW_EMAIL_MSG = "새로운 이메일로 변경이 완료되었습니다.";
+const SUCCESS_NEW_PSWD_MSG = "새로운 비밀번호로 변경이 완료되었습니다.";
+const SUCCESS_NEW_USERNAME_MSG = "새로운 별명으로 변경이 완료되었습니다.";
+const FAILED_NEW_USERNAME_MSG = "새로운 별명으로 변경이 실패되었습니다.";
 var isAuthCode = false;
 
-function init() {
+window.onload = async (e) => {
+    e.preventDefault();
+    var imgArea = document.getElementById("upload_img");
     var currentEmail = document.getElementById("current_email");
     var newEmail = document.getElementById("new_email");
     var currentPswd = document.getElementById("current_pswd");
@@ -20,6 +37,10 @@ function init() {
     if(authBtn) authBtn.addEventListener('click', authenticateCode);
     if(backBtn) backBtn.addEventListener('click', goTasks);
     if(changeEmailBtn) changeEmailBtn.addEventListener('click', changeEmail);
+    if(imgArea) document.getElementById("upload_img").addEventListener('change', uploadFile);
+    if(document.getElementById("user_img") == null) {
+        await makeDefaultUserImg(document.getElementById("username").innerText);
+    }
 }
 
 function appendErrorMsg(elementId, errorMsg) {
@@ -48,7 +69,7 @@ function verifyCurrentEmail() {
     if(emailFormat.test(emailValue)) {
         removeErrorMsg("current_email_error_msg");
     } else {
-        const errorMsg = "잘못된 이메일 주소입니다.";
+        const errorMsg = INVALID_EMAIL_MSG;
         appendErrorMsg("current_email_error_msg", errorMsg);
     }
 }
@@ -60,7 +81,7 @@ function verifyNewEmail() {
     if(emailFormat.test(emailValue)) {
         removeErrorMsg("new_email_error_msg");
     } else {
-        const errorMsg = "잘못된 이메일 주소입니다.";
+        const errorMsg = INVALID_EMAIL_MSG;
         appendErrorMsg("new_email_error_msg", errorMsg);
     }
 }
@@ -72,7 +93,7 @@ function verifyCurrentPswd() {
     if(pswdFormat.test(pswd1Value)) {
         removeErrorMsg("current_pswd_error_msg");
     } else {
-        const errorMsg = "8-20자 영어 대소문자, 특수문자, 숫자를 사용해야 합니다.";
+        const errorMsg = INVALID_PSWD_MSG;
         appendErrorMsg("current_pswd_error_msg", errorMsg);
     }
 }
@@ -84,7 +105,7 @@ function verifyNewPswd1() {
     if(pswdFormat.test(pswd1Value)) {
         removeErrorMsg("new_pswd1_error_msg");
     } else {
-        const errorMsg = "8-20자 영어 대소문자, 특수문자, 숫자를 사용해야 합니다.";
+        const errorMsg = INVALID_PSWD_MSG;
         appendErrorMsg("new_pswd1_error_msg", errorMsg);
     }
 }
@@ -96,7 +117,7 @@ function verifyNewPswd2() {
     if(pswd1Value == pswd2Value) {
         removeErrorMsg("new_pswd2_error_msg");
     } else {
-        const errorMsg = "비밀번호가 일치하지 않습니다.";
+        const errorMsg = MISMATCH_PSWD_MSG;
         appendErrorMsg("new_pswd2_error_msg", errorMsg);
     }
 }
@@ -112,18 +133,23 @@ function sendCode() {
         let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
+                document.body.style.cursor = 'default';
                 let authCodeArea = document.getElementById("auth_code_row");
                 let authCodeInput = document.getElementById("auth_code");
 
-                alert("새로운 이메일로 인증 번호가 전송 되었습니다.");
+                alert(SEND_AUTH_TO_NEW_EMAIL_MSG);
                 sendCodeBtn.disabled = false;
                 authCodeInput.value = ""
                 authCodeArea.style.display = "block";
+                
             }
             if(this.readyState == 4 && this.status == 400) {
+                document.body.style.cursor = 'default';
+                sendCodeBtn.disabled = false;
                 alert('error');
             }
             if(this.readyState >= 1 && this.readyState <= 3) {
+                document.body.style.cursor = 'wait';
                 sendCodeBtn.disabled = true;
             }
         }
@@ -137,7 +163,7 @@ function sendCode() {
 function authenticateCode() {
     if (document.getElementsByClassName("error_msg").length == 0) {
         const params = "email=" + document.getElementById("new_email").value + 
-                     "&code=" + document.getElementById("auth_code").valuecodeValue;
+                     "&code=" + document.getElementById("auth_code").value;
 
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
@@ -149,7 +175,7 @@ function authenticateCode() {
                 const boxBgColor = "rgb(230,230,230)";
                 const boxFontColor = "rgb(0,0,0)";
                 
-                alert("이메일 인증이 완료되었습니다.");
+                alert(SUCCESS_EMAIL_AUTH_MSG);
                 isAuthCode = true;
                 send_btn.disabled = true;
                 send_btn.style.background = boxBgColor;
@@ -164,8 +190,9 @@ function authenticateCode() {
                 auth.style.backgroundColor = boxBgColor;
                 auth.style.color = boxFontColor;
             }
-            if(this.readyState == 4 && this.status == 400 && this.responseText == "not match code") {
-                alert("이메일 인증 번호가 틀렸습니다.");
+            if(this.readyState == 4 && this.status == 400) {
+                if(this.responseText == "not match code") alert(MISMATCH_CODE_MSG);
+                if(this.responseText == "code is expired") alert(EXFIRE_CODE_MSG);
             }
         }
         xhr.open("post", "auth_code", true);
@@ -185,11 +212,12 @@ function changeEmail() {
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
-                alert("새로운 이메일로 변경이 완료되었습니다.")
+                alert(SUCCESS_NEW_EMAIL_MSG);
                 location.href = "/users/profile";
             }
             if(this.readyState == 4 && this.status == 400) {
-                alert('error');
+                if(this.responseText == "not match code") alert(MISMATCH_CODE_MSG);
+                if(this.responseText == "abnormal access") alert(ABNORMAL_ACCESS_MSG);
             }
         }
         xhr.open("put", "email/change", true);
@@ -210,7 +238,7 @@ function changePswd() {
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == 200) {
-                alert("새로운 비밀번호로 변경이 완료되었습니다.")
+                alert(SUCCESS_NEW_PSWD_MSG)
                 location.href = "/users/profile";
             }
             if(this.readyState == 4 && this.status == 400) {
@@ -227,6 +255,178 @@ function goTasks() {
     location.href = "/users/profile";
 }
 
-window.onload = function(e) {  
-    init();
-};
+async function changeUsername() {
+    let username = document.getElementById("username");
+    let form = document.createElement("form");
+    let renameInput = document.createElement("input");
+    let cancelBtn = document.createElement("button");
+    let changeBtn = document.createElement("button");
+    let edit_btn = document.getElementById("edit_username_btn");
+    let usernameArea = document.getElementById("edit_username_area");
+    cancelBtn.setAttribute('id', "cancel_btn");
+    cancelBtn.innerText = "취소";
+    changeBtn.setAttribute('id', "change_btn");
+    changeBtn.innerText = "변경";
+    form.setAttribute('action', '#');
+    form.setAttribute('onsubmit', 'return false');
+    renameInput.setAttribute('type', 'text');
+    renameInput.setAttribute('id', "rename");
+    renameInput.style.fontSize = "18px";
+    renameInput.style.width = "100px";
+    renameInput.style.height = "28px";
+    renameInput.value = username.innerText;
+
+    usernameArea.removeChild(edit_btn);
+    form.appendChild(renameInput);
+    form.appendChild(cancelBtn);
+    form.appendChild(changeBtn);
+    username.replaceWith(form);
+    renameInput.focus();
+    renameInput.select();
+
+    cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        form.replaceWith(username);
+        usernameArea.appendChild(edit_btn);
+    });
+
+    changeBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await send();
+    });
+
+    renameInput.addEventListener('keydown', async (e) => {
+        switch (e.key) {
+            case "Enter":
+                await send();
+                break;
+                
+            case "Escape":
+                form.replaceWith(username);
+                usernameArea.appendChild(edit_btn);
+                break;
+        
+            default:
+                break;
+        }
+    });
+
+    async function send() {
+        if(!renameInput.value || renameInput.value == username.innerText) {
+            form.replaceWith(username);
+            usernameArea.appendChild(edit_btn);
+        } else {
+            const usernameFormat = /^[\w|가-힣]{2,10}$/
+            if (usernameFormat.test(renameInput.value) == true) {
+                const params = "username=" + renameInput.value;
+                alert(params)
+                const xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        alert(SUCCESS_NEW_USERNAME_MSG)
+                        username.innerText = renameInput.value;
+                        form.replaceWith(username);
+                        usernameArea.appendChild(edit_btn);
+                    } else if (this.readyState == 4 && this.status == 400) {
+                        alert(FAILED_NEW_USERNAME_MSG);
+                        form.replaceWith(username);
+                        usernameArea.appendChild(edit_btn);
+                    }
+                }
+                xhr.open("put", "/users/profile/edit/username", true);
+                xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+                xhr.send(params);
+            } else {
+                alert(INVALIED_USERNAME_MSG);
+            }
+        }
+    }
+}
+
+async function makeDefaultUserImg(str) {
+    const imgArea = document.getElementById("user_img_area");
+    let seed = new Number();
+    for (char of str) {
+        seed = seed + Math.imul(23434513 ^ char.charCodeAt(), 56223435);
+    }
+    let randomColor = '#' + (0x1000000 | (Math.sin(seed)*0xFFFFFF)).toString(16).substring(1,7);
+    let canvas = document.createElement("canvas");
+    let context =  canvas.getContext("2d");
+    canvas.width = canvas.height = 50;
+    context.fillStyle = randomColor;
+    context.beginPath();
+    context.ellipse(
+        canvas.width/2, canvas.height/2,
+        canvas.width/2, canvas.height/2,
+        0,
+        0, Math.PI * 2
+    );
+    context.fill();
+    
+    context.font = "400" + " " + (canvas.height/2) + "px Arial";
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(str[0].toUpperCase(), canvas.width/2, canvas.height/2);
+
+    let img = document.createElement("img");
+    img.src = canvas.toDataURL();
+    imgArea.prepend(img);
+}
+
+function uploadImg() {
+    document.getElementById("upload_img").click();
+}
+
+async function toDefaultImg() {
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            location.reload();
+        } else if (this.readyState == 4 && this.status == 400) {
+            alert(ERROR_DEL_IMG_MSG);
+        }
+    }
+    xhr.open("delete", "/users/profile/img", true);
+    xhr.send();
+}
+
+async function uploadFile() {
+    let file = this.files[0]; 
+    let img = new Image();
+    img.src = URL.createObjectURL(file);
+
+    if(this.files) {
+        await img.decode();
+        const IMG_WIDTH = 50;
+        const IMG_HEIGHT = 50;
+        let canvas = document.createElement("canvas");
+        let context =  canvas.getContext("2d");
+
+        context.drawImage(img, 0, 0);
+        canvas.width = IMG_WIDTH;
+        canvas.height = IMG_HEIGHT;
+
+        context.save();
+        context.beginPath();
+        context.arc(25, 25, 25, 0, Math.PI * 2, true);
+        context.closePath();
+        context.clip();
+        context.drawImage(img, 0, 0, IMG_WIDTH, IMG_HEIGHT);
+
+        canvas.toBlob((blob) => {
+            const formData = new FormData();
+            formData.append('uploaded_file', blob, 'user_img.jpeg');
+            const xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    location.reload();
+                } else if (this.readyState == 4 && this.status == 400) {
+                    alert(ERROR_UPLOAD_IMG_MSG);
+                }
+            }
+            xhr.open("post", "/users/profile/img", true);
+            xhr.send(formData);
+        });
+    }
+}

@@ -4,9 +4,8 @@ html(lang="ko")
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        script(type="text/javascript" src="/js/users/default_img.js")
-        script(type="text/javascript" src="/js/users/upload_img.js")
         link(rel="stylesheet" href="/css/users/profile.css")
+        script(type="text/javascript" src="/js/users/edit.js")
         title=pageTitle + " - 회원 정보"
     body
         div(id="content")  
@@ -20,31 +19,38 @@ html(lang="ko")
                         label(for="user_img") 회원 사진
                     div(class="profile_area" id="user_img_area")
                         if userimg
-                            img(name="user_img" id="user_img" src="/data/uploads/img/" + userimg style="width: 50px; height: 50px")
+                            img(name="user_img" id="user_img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
                         form(id="upload" action="profile" method="post")
                             input(type="file" id="upload_img" name="uploaded_file" accept=".png, .jpg, .jpeg" hidden)
                         button(type="button" id="edit_userimg_btn" onclick="uploadImg();") 변경
                         button(type="button" id="to_default_img_btn" onclick="toDefaultImg();" ) 삭제
-                div(class="sidebar")
+                div(class="separator_line")
                 div(class="row")
                     div(class="profile_label_area")
-                        label(for="username") 아이디
+                        label(for="user_id") 아이디
                     div(class="profile_area" id="id_area")
+                        a(name="user_id" id="user_id")=user_id
+                div(class="separator_line")
+                div(class="row")
+                    div(class="profile_label_area")
+                        label(for="username") 별명
+                    div(class="profile_area" id="edit_username_area")
                         a(name="username" id="username")=username
-                div(class="sidebar")
+                        button(type="button" id="edit_username_btn" onclick="changeUsername();") 변경
+                div(class="separator_line")
                 div(class="row")
                     div(class="profile_label_area")
                         label(for="pswd1") 비밀번호
                     div(class="profile_area" id="edit_pswd_area")
                         button(type="button" id="edit_pswd_btn" onclick="location.href='/users/profile/edit/password';") 변경
-                div(class="sidebar")
+                div(class="separator_line")
                 div(class="row")
                     div(class="profile_label_area")
                         label(for="email") 이메일
                     div(class="profile_area" id="edit_email_area")
                         a(type="email" name="email" id="email")=email
                         button(type="button" id="edit_email_btn" onclick="location.href='/users/profile/edit/email';") 변경
-                div(class="sidebar")
+                div(class="separator_line")
                 div(class="row")
                     div(id="return_btn_area")
                         button(type="button" id="return_btn" onclick="location.href='/';") 확인

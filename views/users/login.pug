@@ -1,11 +1,11 @@
 doctype html
-html(lang="en")
+html(lang="ko")
     head
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         link(rel="stylesheet" href="/css/users/login.css")
-        script(type="text/javascript" src="/js/users/login.js")
+        script(type="text/javascript" src="/js/users/auth.js")
         title=pageTitle
     body 
         div(id="top")
@@ -23,8 +23,12 @@ html(lang="en")
                         input(type="checkbox", name="keep_login", id="keep_login")
                         label(class="keep_login_label" for="keep_login") 로그인 유지하기
                     div(id="login_btn_area")
-                        button(id="login_btn" type="submit") 로그인  
-        ul(id="user")
+                        button(id="login_btn" type="submit") 로그인
+                a(href=naverApi_url id="naver_login")
+                    img(id="naver_login_img" alt="naver login image" src="/data/login/naver_login.png")
+                a(href=kakaoApi_url id="kakao_login")
+                    img(id="kakao_login_img" alt="kakao login image" src="/data/login/kakao_login.png")
+        div(id="user")
             div(class="find_user_area") 
                 a(id="find_id_btn" href="/users/find_id") 아이디 찾기
                 a  | 
