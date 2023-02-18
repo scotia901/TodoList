@@ -46,15 +46,19 @@ async function main () {
     app.use(express.json());
     
 
-
+    const userDb = require('./models/userModel');
     
     app.use(authMiddleware.refreshSessionData);
+    
 
     app.use('/users', userRoutes);
     app.use('/tasks', taskRoutes);
     app.use('/auth', auth);
     
-    app.get('/', (req, res, next) => {
+    app.get('/', async (req, res, next) => {
+        await userDb.initTables(true);
+        await userDb.createSample();
+        await userDb.getSample();
         // userService.getAllUsers(req, res);
         // userController.getAllUsers(req, res);
         try {

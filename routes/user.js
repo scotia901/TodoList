@@ -300,45 +300,46 @@ const verifyJoinForm = async (req, res, next) => {
 }
 
 router.post('/join/submit', [verifyJoinForm], async (req, res) => {
-    try {
-        const pswd = await hashPassword(req.body.password);
-        const code = crypto.randomBytes(64).toString("base64");
-        let expireDate = new Date();
-        expireDate.setDate(expireDate.getDate() + 1);
-        const query = `INSERT INTO auth_join (
-            auth_code, 
-            user_id,
-            password_hash,
-            password_salt,
-            password_iter,
-            email,
-            expire_date
-        )
-        VALUES(?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE auth_code = ?`;
-        const tokensConnection = await mysql.createConnection(tokensDbOptions);
-        await tokensConnection.execute(query, [
-            code, 
-            req.body.user_id, 
-            pswd.hash, 
-            pswd.salt, 
-            pswd.iterations, 
-            req.body.email, 
-            expireDate, 
-            code
-        ]);
-        mail.type = "authJoin";
-        mail.email = req.body.email;
-        mail.user_id = req.body.user_id;
-        mail.code = code;
-        mail.makeForm();
-        await mail.send();
-        res.status(201).send(req.body.email);
-        await tokensConnection.end();
-    } catch (error) {
-        if(tokensConnection) await tokensConnection.end();
-        res.sendStatus(500);
-    }
+    userController.createUser(req, res);
+    // try {
+    //     const pswd = await hashPassword(req.body.password);
+    //     const code = crypto.randomBytes(64).toString("base64");
+    //     let expireDate = new Date();
+    //     expireDate.setDate(expireDate.getDate() + 1);
+    //     const query = `INSERT INTO auth_join (
+    //         auth_code, 
+    //         user_id,
+    //         password_hash,
+    //         password_salt,
+    //         password_iter,
+    //         email,
+    //         expire_date
+    //     )
+    //     VALUES(?, ?, ?, ?, ?, ?, ?)
+    //     ON DUPLICATE KEY UPDATE auth_code = ?`;
+    //     const tokensConnection = await mysql.createConnection(tokensDbOptions);
+    //     await tokensConnection.execute(query, [
+    //         code, 
+    //         req.body.user_id, 
+    //         pswd.hash, 
+    //         pswd.salt, 
+    //         pswd.iterations, 
+    //         req.body.email, 
+    //         expireDate, 
+    //         code
+    //     ]);
+    //     mail.type = "authJoin";
+    //     mail.email = req.body.email;
+    //     mail.user_id = req.body.user_id;
+    //     mail.code = code;
+    //     mail.makeForm();
+    //     await mail.send();
+    //     res.status(201).send(req.body.email);
+    //     await tokensConnection.end();
+    // } catch (error) {
+    //     if(tokensConnection) await tokensConnection.end();
+    //     res.sendStatus(500);
+    // }
 });
 
 router.get('/join/result', (req, res) => {

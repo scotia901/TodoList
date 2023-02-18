@@ -49,7 +49,8 @@ module.exports = {
 
     createUser: (req, res) => {
         const userData = req.body;
-
+        console.log(userData);
+        
         userService.createUser(userData, (err, user) => {
             if(err) {
                 res.status(500).send('Error creating user');
@@ -94,5 +95,59 @@ module.exports = {
                 }
             }
         });
+    },
+
+    getUserFromKakao: async (req, res) => {
+        const code = req.query.code;
+        const state = req.query.state;
+        
+        userService.getUserFromKakao(code, state, (err, user) => {
+            if (err) {
+                res.status(500).send('Error getting naver user by token.');
+            } else {
+                if (user) {
+                    // userService.getUserById();
+                    // userService.saveUserToSession(req, userId, (err) => {
+                    //     if(err) throw err;
+                    // });
+                    // req.session.userId = 'get the user from table in Db';
+                    // req.session.isLodin = true
+                    res.status(200).send(user);
+                } else {
+                    res.status(404).send('Not found naver user');
+                }
+            }
+        });
+    },
+
+    getUserFromNaver: async (req, res) => {
+        const code = req.query.code;
+        const state = req.query.state;
+        
+        userService.getUserFromNaver(code, state, (err, user) => {
+            if (err) {
+                res.status(500).send('Error getting naver user by token.');
+            } else {
+                if (user) {
+                    // userService.getUserById();
+                    // userService.saveUserToSession(req, userId, (err) => {
+                    //     if(err) throw err;
+                    // });
+                    // req.session.userId = 'get the user from table in Db';
+                    // req.session.isLodin = true
+                    res.status(200).send(user);
+                } else {
+                    res.status(404).send('Not found naver user');
+                }
+            }
+        });
+    },
+    
+    createUserByNaverUser: (req, res) => {
+        auth
+        const userData = user;
+        const userName = user.properties.nickname;
+
+        userService.createUser()
     }
 }

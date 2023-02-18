@@ -1,4 +1,9 @@
+require('dotenv').config();
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const db = require('../db');
+const userModel = require('../models/userModel');
+const crypto = require('node:crypto');
+const authService = require('../services/authService');
 
 module.exports = {
 
@@ -38,8 +43,19 @@ module.exports = {
 
     },
 
-    createUser: (userData, callback) => {
-        db.query(`INSERT INTO auth_join (
+    createUser: async (userData, callback) => {
+        const userService = require('../services/userService')
+        await userService.hashPassword(userData.password, (err, password) => {
+            if(err) {
+                console.log(err);
+                callback(err, null);
+            } else {
+                console.log(password);
+                callback(err, password);
+            }
+        });
+
+        db.execute(`INSERT INTO auth_join (
             user_id,
             name,
             email,
@@ -77,5 +93,75 @@ module.exports = {
                 callback(null, result);
             }
         });
-    }
+    },
+    
+    hashPassword: async (password, callback) => {
+        try {
+            const salt = crypto.randomBytes(128).toString("base64");
+            const iterations = 10000;
+            const keylen = 128;
+            const digest = 'sha512';
+            crypto.pbkdf2(password, salt, iterations, keylen, digest, (err, derivedKey) => {
+                if(err) {
+                    throw err;
+                } else {
+                    callback(null, {salt: salt, hash:derivedKey});
+                }
+            });
+        } catch (err) {
+            callback(err, null);
+        }
+    },
+
+    createUserByKaKao: async (resoruce, callback) => {
+        try {
+            const id = resoruce.id;
+            const email = resoruce.email;
+            const type = 'kakao'
+    
+            await userModel.create({
+                name: id,
+                email: email
+            });
+        } catch (err) {
+            callback(err);
+        }
+    },
+
+    createUserByNaver: async (resoruce, callback) => {
+        try {
+            const id = resoruce.id;
+            const email = resoruce.email;
+            const type = 'naver'
+    
+            await userModel.create({
+                name: id,
+                email: email,
+                type: type
+            });
+        } catch (err) {
+            callback(err);
+        }
+    },
+
+    getUserFromNaver: async (code, state, callback) => {
+        try {
+            const token = await authService.getTokenFromNaver(code, state);
+            const user = await authService.getUserFromNaverToken(token);
+            if(user) { callback(null, user); }
+        } catch (err) {
+            callback(err, null);
+        }
+    },
+
+    getUserFromKakao: async (code, state, callback) => {
+        try {
+            const token = await authService.getTokenFromKakao(code, state);
+            const user = await authService.getUserFromKakaoToken(token);
+            if(user) { callback(null, user); }
+        } catch (err) {
+            console.log(err);
+            callback(err, null);
+        }
+    },
 }
