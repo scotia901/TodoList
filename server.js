@@ -33,14 +33,15 @@ async function main () {
                     sameSite: process.env.SESSION_SAMESITE
                 }
     };
-    const taskRoutes = require('./routes/task');
-    const userRoutes = require('./routes/user');
-    const auth = require('./routes/auth');
+    const taskRoutes = require('./routes/taskRoute');
+    const userRoutes = require('./routes/userRoute');
+    const authRoutes = require('./routes/authRoute');
 
     app.set('view engine', 'pug');
     app.set('views', [path.join(__dirname, 'views'), path.join(__dirname, 'views/users')]);
     app.use(session(sessOptions));
     app.use(express.static('public'));
+    app.use(express.static('utilities'));
     app.use(express.urlencoded({ extended: false }));
     app.use(cookieParser());
     app.use(express.json());
@@ -48,21 +49,25 @@ async function main () {
 
     const userDb = require('./models/userModel');
     
-    app.use(authMiddleware.refreshSessionData);
+    // app.use(authMiddleware.refreshSessionData);
     
-
+    
     app.use('/users', userRoutes);
     app.use('/tasks', taskRoutes);
-    app.use('/auth', auth);
+    app.use('/auth', authRoutes);
     
-    app.get('/', async (req, res, next) => {
+    app.get('/recreate', async (req, res) => {
         await userDb.initTables(true);
-        await userDb.createSample();
-        await userDb.getSample();
+        res.send('ok');
+    });
+    app.get('/', async (req, res, next) => {
+
+        // await userDb.createSample();
+        // await userDb.getSample();
         // userService.getAllUsers(req, res);
         // userController.getAllUsers(req, res);
         try {
-            if(req.session.isLogined == true) {
+            if(req.session.user) {
                 res.redirect('/tasks');
             } else {
                 res.redirect('/users/login');

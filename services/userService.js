@@ -1,9 +1,10 @@
 require('dotenv').config();
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const db = require('../db');
-const userModel = require('../models/userModel');
+const { User } = require('../models/userModel');
 const crypto = require('node:crypto');
 const authService = require('../services/authService');
+const Sequelize = require('sequelize/lib/sequelize');
 
 module.exports = {
 
@@ -17,14 +18,36 @@ module.exports = {
         });
     },
 
-    getUserById: (userId, callback) => {
-        db.query(`SELECT * FROM users WHERE user_id = "${userId}"`, function(err, result) {
-            if(err) {
-                callback(err, null);
-            } else {
-                callback(null, result.row[0]);
+    getUserByUserId: async (userId, callback) => {
+        const user = await User.findOne({
+            attributes: ['nickname', 'userId'],
+            where: {
+                userId: snsId,
             }
         });
+
+        if(user == null) {
+            callback(err, null);
+        } else {
+            callback(null, userId);
+        }
+    },
+
+    getUserBySnsId: async (snsId, snsType, callback) => {
+        try {
+            const result = await User.findOne({
+                attributes: ['id', 'nickname', 'snsId', 'snsType'],
+                where: {
+                    snsId: snsId,
+                    snsType: snsType
+                }
+            });
+
+            callback(result.dataValues);
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
     },
 
     getUserByEmail: function (userEmail, callback)  {
@@ -40,7 +63,6 @@ module.exports = {
                 callback(null, userId);
             };
         })
-
     },
 
     createUser: async (userData, callback) => {
@@ -113,55 +135,62 @@ module.exports = {
         }
     },
 
-    createUserByKaKao: async (resoruce, callback) => {
+    getUserFromSns: async (code, state, snsType) => {
         try {
-            const id = resoruce.id;
-            const email = resoruce.email;
-            const type = 'kakao'
-    
-            await userModel.create({
-                name: id,
-                email: email
-            });
+            let user = {};
+            if(snsType == 'naver') {
+                const token = await authService.getTokenFromNaver(code, state);
+                user = await authService.getUserFromNaverToken(token);
+            } else {
+                const token = await authService.getTokenFromKakao(code, state);
+                user = await authService.getUserFromKakaoToken(token);
+            }
+            console.log(user);
+            return user
         } catch (err) {
-            callback(err);
+            console.error(err);
         }
     },
 
-    createUserByNaver: async (resoruce, callback) => {
+    isUserExistInDb: async (user) => {
+        const snsId = user.snsId;
         try {
-            const id = resoruce.id;
-            const email = resoruce.email;
-            const type = 'naver'
+            if(snsId) {
+                const userCount = await User.count({
+                    where: { snsId: snsId }
+                });
     
-            await userModel.create({
-                name: id,
+                if(userCount > 0) {
+                    return true
+                } else {
+                    return false
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    },
+
+    createSnsUser: async (userData) => {
+        try {
+
+            console.log(userData);
+            const nickname = userData.nickname? userData.nickname : "익명" ;
+            const snsId = userData.snsId;
+            const email = userData.email;
+            const snsType = userData.snsType;
+    
+            const result = await User.create({
+                nickname: nickname,
                 email: email,
-                type: type
+                snsId: snsId,
+                snsType: snsType,
+                snsConnectAt: new Date()
             });
-        } catch (err) {
-            callback(err);
-        }
-    },
 
-    getUserFromNaver: async (code, state, callback) => {
-        try {
-            const token = await authService.getTokenFromNaver(code, state);
-            const user = await authService.getUserFromNaverToken(token);
-            if(user) { callback(null, user); }
+            return result;
         } catch (err) {
-            callback(err, null);
+            console.error(err);
         }
-    },
-
-    getUserFromKakao: async (code, state, callback) => {
-        try {
-            const token = await authService.getTokenFromKakao(code, state);
-            const user = await authService.getUserFromKakaoToken(token);
-            if(user) { callback(null, user); }
-        } catch (err) {
-            console.log(err);
-            callback(err, null);
-        }
-    },
+    }
 }

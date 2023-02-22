@@ -1,4 +1,5 @@
 const User = 'user';
+const session = require('express-session');
 const userService = require('../services/userService');
 
 module.exports = {
@@ -101,18 +102,21 @@ module.exports = {
         const code = req.query.code;
         const state = req.query.state;
         
-        userService.getUserFromKakao(code, state, (err, user) => {
+        userService.getUserFromKakao(code, state, async (err, userData) => {
             if (err) {
                 res.status(500).send('Error getting naver user by token.');
             } else {
-                if (user) {
-                    // userService.getUserById();
-                    // userService.saveUserToSession(req, userId, (err) => {
-                    //     if(err) throw err;
-                    // });
-                    // req.session.userId = 'get the user from table in Db';
-                    // req.session.isLodin = true
-                    res.status(200).send(user);
+                if (userData) {
+                    if(await userService.isUserExistInDb(userData)) {
+                        userService.getUserBySnsId(userData.snsId, userData.snsType);
+                    } else {
+                        userService.createSnsUser(userData);
+                    }
+                    req.session.user.snsId;
+                    req.session.user.nickname;
+                    req.session.user.id;
+
+                    res.status(200).send(req.session.user);
                 } else {
                     res.status(404).send('Not found naver user');
                 }
@@ -120,34 +124,44 @@ module.exports = {
         });
     },
 
-    getUserFromNaver: async (req, res) => {
-        const code = req.query.code;
-        const state = req.query.state;
-        
-        userService.getUserFromNaver(code, state, (err, user) => {
-            if (err) {
-                res.status(500).send('Error getting naver user by token.');
-            } else {
-                if (user) {
-                    // userService.getUserById();
-                    // userService.saveUserToSession(req, userId, (err) => {
-                    //     if(err) throw err;
-                    // });
-                    // req.session.userId = 'get the user from table in Db';
-                    // req.session.isLodin = true
-                    res.status(200).send(user);
-                } else {
-                    res.status(404).send('Not found naver user');
-                }
-            }
-        });
-    },
+    loginSnsUser: async (req, res) => {
+        try {
+            const code = req.query.code;
+            const state = req.query.state;
+            const snsType = req.path.slice(1);
+            const userData = await userService.getUserFromSns(code, state, snsType);
     
-    createUserByNaverUser: (req, res) => {
-        auth
-        const userData = user;
-        const userName = user.properties.nickname;
+            if(!await userService.isUserExistInDb(userData)) {
+                await userService.createSnsUser(userData);
+            }
 
-        userService.createUser()
+            await userService.getUserBySnsId(userData.snsId, userData.snsType, (user) => {
+                if (user) {
+                    req.session.user = {
+                        id: user.id,
+                        snsType: user.snsType,
+                        nickname: user.nickname
+                    };
+                    res.redirect('/tasks');
+                } else {
+                    res.status(404).send('Not found naver user');
+                }
+            });
+        } catch (err) {
+            res.status(500).send('Error getting naver user.' + err);
+        }
+    },
+
+    logoutUser: async (req, res) => {
+        try {
+            console.log('logout msg');
+            req.session.destroy(async (err) => {
+                if(err) throw err;
+                res.status(204).send();
+            });
+        } catch (err) {
+            console.log(err);
+            res.status(500).send('Error getting naver user.' + err);
+        }
     }
 }

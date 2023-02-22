@@ -1,4 +1,7 @@
 const db = require('../db');
+const { Task, Category } = require('../models/userModel');
+const { Sequelize, Op } = require('sequelize');
+
 
 module.exports = {
 
@@ -12,65 +15,144 @@ module.exports = {
         });
     },
 
-    getTaskByUserIdAndCategoryId: (userId, categoryId, callback) => {
-        db.execute(`SELECT achievement, hex(tasks.id) as id, description, importance, date_format(deadline, '%Y-%m-%d') as deadline
-        FROM tasks
-        WHERE user_id = (SELECT id FROM users WHERE user_id = "${userId}")
-        AND category_id = unhex("${decodeURI(categoryId)}")
-        ORDER BY importance DESC, tasks.create_date DESC`, function (err, row, result) {
-            if (err) {
-                callback(err, null);
-            } else {
-                callback(null, row);
-            };
-        })
+    getTodayTaskByUserId: async (userId) => {
+        try {
+            const result = await Task.findAll({
+                attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+                where: {
+                    UserId: userId,
+                }
+            })
+            return result
+        } catch (error) {
+            console.log(error);
+        }
     },
 
-    getTasksByUserIdAndSearchWord: (userId, searchWord, callback) => {
-        db.execute(`SELECT achievement, hex(id) as id, description, importance, date_format(deadline, '%Y-%m-%d') as deadline
-        FROM tasks
-        WHERE description like "%${searchWord}%"
-        AND user_id = (SELECT id FROM users WHERE user_id = "${userId}")
-        ORDER BY achievement ASC`, function (err, row, result) {
-            if (err) {
-                callback(err, null);
-            } else {
-                callback(null, row);
-            };
-        })
-    },
+    getTasksByUserAndCategory: async (userId, categoryId, callback) => {
+            const tasks = await Task.findAll({
+                attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+                raw: true,
+                where : {
+                    UserId: userId,
+                    CategoryId: categoryId
+                }, include: {
+                    attributes: ['name'],
+                    model: Category
+                }
+            });
 
-    postTaskByUserIdAndCategoryId: (taskMsg, userId, categoryId, callback) => {
-        db.execute(`INSERT INTO tasks (id, description, user_id, category_id)
-        SELECT (unhex(replace(uuid(),'-',''))),
-        "${taskMsg}",
-        (SELECT id FROM users WHERE user_id = "${userId}"),
-        unhex("${categoryId}");`, function (err, row, result) {
-            if (err) {
-                callback(err, null);
+            if(tasks == null) {
+                const err = new Error('Not found tasks');
+                callback(err);
             } else {
-                callback(null, result);
-            };
-        })
-    },
-
-    updateTaskByTaskId: (taskMsg, taskId, callback) => {
-        db.query(`UPDATE tasks SET description = "${taskMsg}" WHERE id = unhex("${taskId}")`, function(err, result) {
-            if(err) {
-                callback(err, null);
-            } else {
-                callback(null, result.row[0]);
+                return Promise.resolve(tasks);
             }
+    },
+
+    searchTasksByUserAndTerm: async (userId, searchTerm, callback) => {
+        const tasks = await Task.findAll({
+            where: {
+                text: {
+                    [Op.like]: searchTerm
+                },
+                UserId: userId
+            },
+        });
+        
+        if(tasks == null) {
+            const err = new Error('Not Found Task'); 
+            callback(err);
+        } else {
+            return Promise.resolve(tasks);
+        }
+    },
+
+    postTaskByUserAndCategory: async (userId, taskText, categoryId) => {
+        try {
+            const task = await Task.create({
+                text: taskText,
+                CategoryId: categoryId,
+                UserId: userId,
+            });
+            return Promise.resolve(task);
+        } catch (err) {
+            console.error(err);
+            return Promise.reject(err);
+        }
+    },
+
+    updateTaskTextByTaskId: async (userId, taskId, taskText, callback) => {
+        console.log(userId, taskId, taskText);
+        await Task.update({
+            text: taskText
+        }, {
+            where: {
+            id: taskId,
+            UserId: userId
+            }
+        }).then(result => {
+            callback(null, result);
+        }).catch(err => {
+            callback(err, null);
         });
     },
 
-    deleteTaskByTaskId: (taskId, callback) => {
-        db.query(`DELETE FROM tasks WHERE id = unhex("${taskId}")`, function(err, result) {
-            if(err) {
-                callback(err, null);
-            } else {
-                callback(null, result);
+    deleteTaskByTaskId: async (userId, taskId, callback) => {
+        await Task.destroy({
+            where: {
+                id: taskId,
+                UserId: userId
             }
+        }).then(result => {
+            callback(null, result);
+        }).catch(err => {
+            callback(err, null);
+        });
+    },
+
+    toggleTaskImportance: async (userId, taskId, callback) => {
+        await Task.update({
+            importance: Sequelize.literal('NOT importance')
+        }, {
+            where: {
+            id: taskId,
+            UserId: userId
+            }
+        }).then(result => {
+            callback(null, result);
+        }).catch(err => {
+            callback(err, null);
+        });
+    },
+
+    toggleTaskCompleted: async (userId, taskId, callback) => {
+        await Task.update({
+            completed: Sequelize.literal('NOT completed')
+        }, {
+            where: {
+            id: taskId,
+            UserId: userId
+            }
+        }).then(result => {
+            callback(null, result);
+        }).catch(err => {
+            callback(err, null);
+        });
+    },
+
+    updateTaskDeadline: async (userId, taskId, deadline, callback) => {
+        await Task.update({
+            deadline: deadline
+        }, {
+            where: {
+                id: taskId,
+                userId: userId
+            }
+        }).then(result => {
+            callback(null, result);
+        }).catch(err => {
+            callback(err, null);
         });
     }
 }

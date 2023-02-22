@@ -11,13 +11,13 @@ const naverSecret = process.env.NAVER_CLIENT_SECRET;
 const callbackUri = encodeURI(process.env.AUTH_CALLBACK_URI);
 
 router.get('/kakao', async (req, res) => {
-    userController.getUserFromKakao(req, res);
+    userController.loginSnsUser(req, res);
 });
 
 
 
 router.get('/naver', async (req, res) => {
-    userController.getUserFromNaver(req, res);
+    userController.loginSnsUser(req, res);
 });
 
 router.get('/naver/delete', async (req, res) => {
@@ -30,6 +30,7 @@ router.get('/naver/delete', async (req, res) => {
 });
 
 router.get('/naver/reauth', async (req, res) => {
+    authController.getTokenFromNaver(req, res);
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const state = 'random_state';
     const api_url = 'https://nid.naver.com/oauth2.0/authorize?auth_type=reauthenticate&client_id=' + naverId + '&redirect_uri='
@@ -41,9 +42,10 @@ router.get('/naver/reauth', async (req, res) => {
 });
 
 router.get('/naver/re', async (req, res) => {
+    authController.get
     const response = await authenticate(req);
     res.send(response);
-})
+});
 
 async function authenticate(req) {
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));

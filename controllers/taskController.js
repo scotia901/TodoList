@@ -1,69 +1,52 @@
-const taskService = require('../services/taskService');
+const TaskService = require('../services/taskService');
+const categoryService = require('../services/categoryService');
+const TaskUtility = require('../utilities/taskUtility');
 
 module.exports = {
 
-    getTaskByUserIdAndCategoryId: (req, res) => {
-        const userId = req.session.user_id;
-        const categoryId = req.query.categoryId;
-
-        taskService.getTaskByUserIdAndCategoryId(userId, categoryId, (err, tasks) => {
-            if (err) {
-                res.status(500).send('Error getting tasks by id and category');
-            } else {
-                if (tasks) {
-                    res.status(200).send(tasks);
-                } else {
-                    res.status(404).send('Not found tasks');
-                }
-            }
+    getTasksByUserAndCategory: async (req, res) => {
+        const userId = req.session.user.id;
+        const categoryId = req.query.categoryId ? req.query.categoryId : null;
+        const categoryName = req.query.categoryName ? req.query.categoryName : null;
+        
+        const tasks = await TaskService.getTasksByUserAndCategory(userId, categoryId, (err) => {
+            if(err) throw err;
         });
+
+        res.status(200).json(tasks);
     },
 
-    getTasksByUserIdAndSearchWord: (req, res) => {
-        const userId = req.session.user_id;
-        const searchWord = req.params.text;
-
-        taskService.getTasksByUserIdAndSearchWord(userId, searchWord, (err, tasks) => {
-            if (err) {
-                res.status(500).send('Error searching tasks by id and search');
-            } else {
-                console.log(tasks);
-                if (tasks) {
-                    res.status(200).send(tasks);
-                } else {
-                    res.status(404).send('Not found tasks');
-                }
-            }
+    searchTasksByUserAndTerm: async (req, res) => {
+        const userId = req.session.user.id;
+        const searchTerm = '%' + req.params.text + '%'
+        
+        const tasks = await TaskService.searchTasksByUserAndTerm(userId, searchTerm, (err) => {
+            if (err) throw err;
         });
+        res.status(200).json(tasks);
     },
 
-    postTaskByUserIdAndCategoryId: (req, res) => {
-        const userId = req.body.userId;
-        const categoryId = req.body.categoryId;
+    postTaskByUserAndCategory: async (req, res) => {
+        const userId = req.session.user.id;
+        const taskText = req.body.taskText;
+        const categoryId = req.body.categoryId ? req.body.categoryId : null;
 
-        taskService.postTaskByUserIdAndCategoryId(userId, categoryId, (err, task) => {
-            if (err) {
-                res.status(500).send('Error posting task by userid and categoryid');
-            } else {
-                if (task) {
-                    console.log(task);
-                    res.status(200).json(task);
-                } else {
-                    res.status(404).send('Not found user');
-                }
-            }
-        });
+        const task = await TaskService.postTaskByUserAndCategory(userId, taskText, categoryId);
+        res.status(200).json(task);
     },
 
-    updateTaskByTaskId: (req, res) => {
+    updateTaskTextByTaskId: (req, res) => {
+        const userId = req.session.user.id;
         const taskId = req.body.taskId;
+        const taskText = req.body.taskText;
 
-        taskService.updateTaskByTaskId(taskId, (err, task) => {
+        TaskService.updateTaskTextByTaskId(userId, taskId, taskText, (err, task) => {
             if (err) {
+                console.error(err);
                 res.status(500).send('Error updating task by taskid');
             } else {
                 if (task) {
-                    res.status(200).send(task);
+                    res.status(200).send();
                 } else {
                     res.status(404).send('Not found task');
                 }
@@ -71,15 +54,73 @@ module.exports = {
         });
     },
 
-    deleteTaskByTaskId: (req, res) => {
+    deleteTaskByTaskId: async (req, res) => {
+        const userId = req.session.user.id;
         const taskId = req.body.taskId;
 
-        taskervice.deleteTaskByTaskId(taskId, (err, task) => {
+        await TaskService.deleteTaskByTaskId(userId, taskId, (err, task) => {
             if (err) {
+                console.error(err);
                 res.status(500).send('Error deleting task by taskid');
             } else {
                 if (task) {
-                    res.status(200).send(task);
+                    console.log(task);
+                    res.sendStatus(200);
+                } else {
+                    res.status(404).send('Not found task');
+                }
+            }
+        });
+    },
+
+    toggleTaskImportance: async (req, res) => {
+        const userId = req.session.user.id;
+        const taskId = req.body.taskId;
+        await TaskService.toggleTaskImportance(userId, taskId, (err, task) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Error deleting task by taskid');
+            } else {
+                if (task) {
+                    res.sendStatus(200);
+                } else {
+                    res.status(404).send('Not found task');
+                }
+            }
+        });
+    },
+
+    toggleTaskCompleted: async (req, res) => {
+        const userId = req.session.user.id;
+        const taskId = req.body.taskId;
+
+        await TaskService.toggleTaskCompleted(userId, taskId, (err, task) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Error deleting task by taskid');
+            } else {
+                if (task) {
+                    res.sendStatus(200);
+                } else {
+                    res.status(404).send('Not found task');
+                }
+            }
+        });
+    },
+
+    updateTaskDeadline: async (req, res) => {
+        const userId = req.session.user.id;
+        const taskId = req.body.taskId;
+        const deadline = req.body.taskDeadline === '0000-00-00' ? null : new Date(req.body.taskDeadline);
+
+        await TaskService.updateTaskDeadline(userId, taskId, deadline, async (err, task) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Error deleting task by taskid');
+            } else {
+                if (task) {
+                    const updatedTaskDeadline = await TaskUtility.reformatDate(deadline)
+                    res.status(200).send(updatedTaskDeadline);
                 } else {
                     res.status(404).send('Not found task');
                 }

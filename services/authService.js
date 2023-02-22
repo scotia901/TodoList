@@ -1,5 +1,3 @@
-const { response } = require('express');
-
 require('dotenv').config();
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const naverId = process.env.NAVER_CLIENT_ID;
@@ -33,14 +31,20 @@ module.exports = {
 
     getUserFromKakaoToken: async (token, callback) => {
         const authorization = token.token_type + " " + token.access_token;
-        const user = await fetch("https://kapi.kakao.com/v2/user/me", {
+        const result = await fetch("https://kapi.kakao.com/v2/user/me", {
             method: "GET",
             headers: { 'Authorization': authorization }
         }).then((response) => response.json());
 
-        if(user.error) {
-            throw user.error
+        if(result.error) {
+            throw result.error
         } else {
+            const user = {
+                nickname: result.properties.nickname,
+                email: result.kakao_account.email,
+                snsId: result.id,
+                snsType: 'kakao'
+            }
             return user
         }
     },
@@ -71,7 +75,12 @@ module.exports = {
         }).then((response) => response.json());
 
         if(result.resultcode == '00') {
-            const user = result.response;
+            const user = {
+                nickname: result.response.nickname,
+                email: result.response.email,
+                snsId: result.response.id,
+                snsType: 'naver'
+            };
             return user
         } else {
             const err = {
@@ -96,9 +105,8 @@ module.exports = {
         const state = 'random_state';
         const api_url = 'https://nid.naver.com/oauth2.0/authorize?auth_type=reauthenticate&client_id=' + naverId + '&redirect_uri='
         + callbackUri + "naver/re" + '&response_type=code&state=' + state;
-        console.log(api_url);
+        
         const response = await fetch(api_url).then((response) => response);
-    
         res.send(response);
     },
 

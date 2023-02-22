@@ -1,8 +1,5 @@
 const { Sequelize, DataTypes, Model } = require('sequelize');
-const { where } = require('sequelize/lib/sequelize');
 
-const host = process.env.MYSQL_HOST;
-const port = process.env.MYSQL_PORT;
 const DATABASE =  process.env.MYSQL_TODO_DATABASE;
 const DBUSER = process.env.MYSQL_USER;
 const DBPASSWORD = process.env.MYSQL_PASSWORD;
@@ -19,7 +16,7 @@ const options = {
     }
 }
 
-const sequelize = new Sequelize(DATABASE, DBUSER, DBPASSWORD, options );
+const sequelize = new Sequelize(DATABASE, DBUSER, DBPASSWORD, options);
 
 sequelize.createSchema('maindb');
 
@@ -58,7 +55,7 @@ User.init({
         type: DataTypes.STRING
     },
     snsConnectAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
     },
     email: {
         type: DataTypes.STRING
@@ -86,15 +83,20 @@ User.init({
 
  Task.init({
     id: {
-        type: DataTypes.BIGINT,
-        autoIncrement: true,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
     text: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    flag: {
+    completed: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    importance: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false
@@ -106,26 +108,38 @@ User.init({
 
 const CategoryTask = sequelize.define('category_task', {}, { timestamps: false });
 
-
-// Task.hasOne(User, { foreignKey: {allowNull: false }});
-// User.hasMany(Task);
-
+Task.belongsTo(User);
+User.hasMany(Task);
+Category.belongsTo(User);
+User.hasMany(Category);
+Task.belongsTo(Category);
+Category.hasMany(Task);
 
 module.exports = {
-    initTables: async (force, next) => {
+    User,
+
+    Task,
+
+    Category,
+
+    initTables: async (force) => {
         try {
             if (typeof force == 'boolean' || typeof force == undefined) {
                 await sequelize.query('SET FOREIGN_KEY_CHECKS = 0', null, { raw: true });
-                Task.belongsTo(User);
-                User.hasMany(Task);
-                Category.belongsTo(User);
-                User.hasMany(Category);
-                Category.belongsToMany(Task, { through: 'category_task' });
-                Task.belongsToMany(Category, { through: 'category_task' });
+                // Task.belongsTo(User);
+                // User.hasMany(Task);
+                // Category.belongsTo(User);
+                // User.hasMany(Category);
+                // Category.belongsToMany(Task, { through: 'category_task' });
+                // Task.belongsToMany(Category, { through: 'category_task' });
                 await User.sync({ force: force });
-                await Task.sync({ force: force });
                 await Category.sync({ force: force });
                 await CategoryTask.sync({ force: force });
+                await Task.sync({ force: force });
+                await Category.create({ name: "오늘 할 일" });
+                await Category.create({ name: "중요" });
+                await Category.create({ name: "계획된 일정" });
+                await Category.create({ name: "작업" });
             } else {
                 throw 'Argument TypeError'
             }                                
@@ -190,5 +204,48 @@ module.exports = {
         }).then((result) => {
             console.log(result);
         });
+    },
+
+    isUserExist: async (user) => {
+        const snsId = user.snsId;
+        try {
+            if(snsId) {
+                const userCount = await User.count({
+                    where: { snsId: snsId }
+                });
+
+                if(userCount > 0) {
+                    return true
+                } else {
+                    return false
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    },
+
+    createSnsUser: async (user, callback) => {
+        try {
+            const nickname = user.nickname? user.nickname : "익명" ;
+            const snsId = user.snsId;
+            const email = user.email;
+            const snsType = user.snsType;
+
+    
+            const result = await User.create({
+                nickname: nickname,
+                email: email,
+                snsId: snsId,
+                snsType: snsType,
+                snsConnectAt: Sequelize.literal('CURRENT_TIMESTAMP')
+            });
+
+            console.log(result);
+
+            callback(null, result);
+        } catch (err) {
+            console.error(err);
+        }
     }
 }

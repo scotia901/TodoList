@@ -1,12 +1,31 @@
 window.addEventListener('load', async (e) => {
     e.preventDefault();
+    await getTasksByUserAndCategory();
     await toggleCompletedTasks();
     await setCategory();
     await setDeadline();
     await resizeTasks();
     await renameCategory();
-    await getTasksCount();
+    // await getTasksCount();
 });
+
+async function getTasksByUserAndCategory() {
+    const xhr = new XMLHttpRequest();
+    // const body = "&taskId=" + taskId;
+
+    xhr.onreadystatechange = async function () {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log(this.status);
+            
+            document.getElementById('tasks').appendChild( await reformatToHtml(this.response) );
+            toggleCompletedTasks();
+            setDeadline();
+        }
+    }
+    xhr.open("get", "/tasks/work", true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+    xhr.send();
+}
 
 window.addEventListener('resize', async (e) => {
     const contentMarginL = 30;
@@ -26,32 +45,39 @@ window.addEventListener('resize', async (e) => {
     await resizeTasks();
 });
 
-function toggleImportance(taskId) {
-    var xhr = new XMLHttpRequest();
+function toggleTaskImportance(taskId) {
+    const xhr = new XMLHttpRequest();
+    const body = "&taskId=" + taskId;
+
     xhr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("tasks").innerHTML = this.responseText;
+            const taskImportance = document.getElementById(taskId).children[3].children[0];
+            taskImportance.value ^= 1;        
             toggleCompletedTasks();
             setDeadline();
         }
     }
-    xhr.open("put", "/tasks/mark/" + taskId, true);
+    xhr.open("put", "/tasks/toggleImportance", true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
+    xhr.send(body);
 }
 
-function completeTask(taskId) {
-    var xhr = new XMLHttpRequest();
+function toggleTaskCompleted(taskId) {
+    const xhr = new XMLHttpRequest();
+    const body = "&taskId=" + taskId;
+
     xhr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("tasks").innerHTML = this.responseText;
+            const taskCompleted = document.getElementById(taskId).children[0];
+            taskCompleted.value ^= 1;
+            console.log(taskCompleted.value);
             toggleCompletedTasks();
             setDeadline();
         }
     }
-    xhr.open("put", "/tasks/complete/" + taskId, true);
+    xhr.open("put", "/tasks/toggleCompleted", true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
+    xhr.send(body);
 }
 
 function incompleteTask(taskId) {
@@ -68,47 +94,50 @@ function incompleteTask(taskId) {
     xhr.send();
 }
 
-function editTask(taskId) {
-    var xhr = new XMLHttpRequest();
+function updateTaskText(taskId) {
+    const xhr = new XMLHttpRequest();
+    const taskText = prompt("수정할 내용을 입력해 주세요.");
+    if (!taskText) { return }
+    
+    const body = "&taskId=" + taskId + "&taskText=" + taskText
     xhr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("tasks").innerHTML = this.responseText;
+            document.getElementById(taskId).childNodes[5].innerText = taskText
             toggleCompletedTasks();
             setDeadline();
         }
     }
-    let taskDescription = prompt("수정할 내용을 입력해 주세요.");
-    if (!taskDescription) { return }
-    xhr.open("put", "/tasks/edit/" + taskId + "/" + taskDescription, true);
+    xhr.open("put", "/tasks/update/text", true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
+    xhr.send(body);
 }
 
 function postTask() {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = async function() {
         if (this.readyState == 4 && this.status == 200) {
+            const ul = document.getElementById('incomplete_ul');
+            const li = document.createElement('li');
+            const postedTask = JSON.parse(this.response)
+
+            ul.prepend(await reformatTask(postedTask));
+
+            // li.innerHTML = ;
+            // ul.insertBefore(li, ul.firstChild);
             document.getElementById("post_task_msg").value = "";
-            document.getElementById("tasks").innerHTML = this.responseText;
             toggleCompletedTasks();
             setDeadline();
+            resizeTasks();
         }
     }
 
-    var category;
-    const pathname = document.location.pathname.slice(7)
-    const taskDescription = document.getElementById("post_task_msg").value;
-    if (document.location.search) {
-        const params = new URL(document.location).searchParams;
-        category = params.get("id");
-    } else {
-        category = pathname;
-    }
+    const taskText = document.getElementById("post_task_msg").value;
+    const body = "&taskText=" + taskText;
 
-    if (!taskDescription && !category) { return }
-    xhr.open("post", "/tasks/post/" + category + "/" + taskDescription, true);
+    if (!taskText) { return }
+    xhr.open("post", "/tasks", true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
+    xhr.send(body);
 }
 
 function deleteTask(taskId) {
@@ -117,16 +146,17 @@ function deleteTask(taskId) {
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById("tasks").innerHTML = this.responseText;
+                    document.getElementById(taskId).parentElement.remove();
                     toggleCompletedTasks();
                     setDeadline();
                 } else if (this.status == 400) {
                     throw this.responseText;
                 }
             }
-            xhr.open("delete", "/tasks/delete/" + taskId, true);
+            const body = "&taskId=" + taskId;
+            xhr.open("delete", "/tasks/delete", true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send();
+            xhr.send(body);
         }
     } catch (error) {
         alert(error);
@@ -140,7 +170,7 @@ function viewUserInfo() {
 function logout() {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
+        if (this.readyState == 4 && this.status == 204) {
         location.href = "/";
         }
     }
@@ -190,9 +220,9 @@ function searchTasks() {
         const text = document.getElementById("search_text").value;
         if(text) { 
             var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = async function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById("tasks").innerHTML = this.responseText;
+                    document.getElementById('tasks').innerHTML = await reformatToHtml(this.response);
                     document.getElementById("category_title").innerText = "검색 결과"
                     if(document.getElementById("today_area")) document.getElementById("today_area").style.display = "none"
                     document.querySelector('[style]').style.backgroundColor = "rgb(220, 220, 220)";
@@ -401,20 +431,22 @@ async function setDeadline() {
             }, 1 );
         }
     }).on("input change", function(e) {
-        let text = e.target.value
-        let taskId = $(this).parent().parent().attr("id");
-        let xhr = new XMLHttpRequest();
-        if(e.target.value == "") text = "0000-00-00";
+        const xhr = new XMLHttpRequest();
+        const taskId = $(this).parent().parent().attr("id");
+        let taskDeadline = e.target.value
+        if(e.target.value == "") taskDeadline = "0000-00-00";
+        const body = "&taskId=" + taskId + "&taskDeadline=" + taskDeadline
 
         xhr.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
-                document.getElementById("tasks").innerHTML = this.responseText;
+                const deadlineTextElement = document.getElementById(taskId).children[4].children['deadline_text'];
+                deadlineTextElement.replaceWith(this.responseText);
                 setDeadline();
             }
         }
-        xhr.open("put", "/tasks/deadline/" + taskId + "/" + text, true);
+        xhr.open("put", "/tasks/updateDeadline", true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send();
+        xhr.send(body);
     });
 }
 

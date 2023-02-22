@@ -4,10 +4,11 @@ html(lang="ko")
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible" content="IE=edge")
         meta(name="viewport" content="width=device-width, initial-scale=1.0")
-        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css")
+        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css")
         link(rel="stylesheet" href="/css/tasks/styles.css")
         script(type="text/javascript" src="/js/tasks/app.js")
-        script(type="text/javascript" src="/js/users/image.js")
+        //- script(type="text/javascript" src="/js/users/image.js")
+        script(type="text/javascript" src="/taskUtility.js")
         link(rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css")
         script(src="https://code.jquery.com/jquery-1.12.4.js")
         script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.js")
@@ -20,7 +21,7 @@ html(lang="ko")
                             img(name="user_img" id="user_img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
                 div(id="user_info")
                     a(id="username")=username
-                    if isLogined = true
+                    if username = true
                         div
                             button(id="user_info_btn" name="user_info_btn" onclick="viewUserInfo()") 내정보
                             button(id="logout_btn" name="logout_btn" onclick="logout()") 로그아웃
@@ -40,10 +41,10 @@ html(lang="ko")
                     a(href="/tasks/work" class="category_name" onclick="")="작업"
             div(id="division_line")
             ul(class="categories_list" id="personal_categories")
-                each category in categories
-                    if category.name != "오늘 할 일" && category.name != "중요" && category.name != "계획된 일정" && category.name != "작업"
-                        li(class="category")
-                            a(href="/tasks/category?categoryId=" + category.id class="category_name")=category.name
+                //- each category in categories
+                //-     if category.name != "오늘 할 일" && category.name != "중요" && category.name != "계획된 일정" && category.name != "작업"
+                //-         li(class="category")
+                //-             a(href="/tasks/category?categoryId=" + category.id class="category_name")=category.name
             div(id="new_list")
                 div(style="position: absolute; float: left; height: 54px;")
                     button(type="submit" name="new_list_btn" id="new_list_btn" onclick="addCategory()") 목록 추가
@@ -67,7 +68,7 @@ html(lang="ko")
                             i(id="edit_icon" class="fa fa-pencil-square")
                         button(class="category_icon_area" id="delete_category" onclick="deleteCategory()")
                             i(id="trash_icon" class="fa fa-trash")
-            |!{tasks}
+            div(id="tasks")
             div(id="bottom_area")
                 form(id="post_todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 
                     div(style="position: absolute; float: left; height: 54px;")

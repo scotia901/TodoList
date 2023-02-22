@@ -123,15 +123,8 @@ router.post('/login', async (req, res, next) => {
     }
 });
 
-router.delete('/logout', async (req, res) => {
-    try {
-        req.session.destroy( async (err) => {
-            if(err) throw err;
-            res.sendStatus(204);
-        })
-    } catch (error) {
-        res.sendStatus(500);
-    }
+router.get('/logout', async (req, res) => {
+    userController.logoutUser(req, res);
 });
 
 router.use((req, res, next) => {
