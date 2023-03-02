@@ -23,7 +23,7 @@ module.exports = {
     getKakaoUserByToken: (req, res) => {
         const token = req.body;
 
-        authService.getKakaoUserByToken(token, (err, user) => {
+        authService.getUserFromKakaoToken(token, (err, user) => {
             if (err) {
                 res.status(500).send('Error getting kakao user by token');
             } else {
@@ -40,7 +40,7 @@ module.exports = {
         const userData = user;
         const userName = user.properties.nickname;
 
-        userService.createUser()
+        userService.createUser();
     },
     
     getTokenFromNaver: async (req, res) => {

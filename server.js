@@ -33,6 +33,7 @@ async function main () {
                     sameSite: process.env.SESSION_SAMESITE
                 }
     };
+    const categoryRoutes = require('./routes/categoryRoute');
     const taskRoutes = require('./routes/taskRoute');
     const userRoutes = require('./routes/userRoute');
     const authRoutes = require('./routes/authRoute');
@@ -42,17 +43,22 @@ async function main () {
     app.use(session(sessOptions));
     app.use(express.static('public'));
     app.use(express.static('utilities'));
-    app.use(express.urlencoded({ extended: false }));
+    app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
     app.use(express.json());
+
+
+
     
 
-    const userDb = require('./models/userModel');
+    // const userDb = require('./models/userModel');
     
     // app.use(authMiddleware.refreshSessionData);
+    // app.use(authMiddleware.validateLogin);
     
     
     app.use('/users', userRoutes);
+    app.use('/categories', categoryRoutes);
     app.use('/tasks', taskRoutes);
     app.use('/auth', authRoutes);
     
@@ -61,11 +67,6 @@ async function main () {
         res.send('ok');
     });
     app.get('/', async (req, res, next) => {
-
-        // await userDb.createSample();
-        // await userDb.getSample();
-        // userService.getAllUsers(req, res);
-        // userController.getAllUsers(req, res);
         try {
             if(req.session.user) {
                 res.redirect('/tasks');
@@ -82,10 +83,9 @@ async function main () {
         console.log(`App open on ${appOpenTime.toLocaleString()} and listening on Port:${process.env.SERVER_PORT}`);
     });
 
-    app.use(errorMiddleware.logErrors);
-    app.use(errorMiddleware.clientErrorHandler);
-    app.use(errorMiddleware.errorHandler);
-
+    // app.use(errorMiddleware.logErrors);
+    // app.use(errorMiddleware.clientErrorHandler);
+    // app.use(errorMiddleware.errorHandler);
     app.use((req, res, next) => {
         res.status(404).render('error', { "pageTitle": process.env.PAGE_TITLE, "status": 404, "errMsg": "Not Found" });
     })

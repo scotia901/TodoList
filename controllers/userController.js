@@ -14,6 +14,21 @@ module.exports = {
         });
     },
 
+    uploadUserImage: async (req, res) => {
+        
+        const filename = req.file.filename;
+        const userId = req.session.user.id;
+        console.log(filename);
+
+        userService.uploadUserImage(userId, filename, (err, filename) => {
+            if (err) {
+                res.status(500).send('Error getting all users');
+            } else {
+                res.status(200).send(filename);
+            }
+        });
+    },
+
     getUserById: (req, res) => {
         const userId = req.parms.id;
         const userData = req.body;
@@ -102,7 +117,7 @@ module.exports = {
         const code = req.query.code;
         const state = req.query.state;
         
-        userService.getUserFromKakao(code, state, async (err, userData) => {
+        Service.getUserFromKakao(code, state, async (err, userData) => {
             if (err) {
                 res.status(500).send('Error getting naver user by token.');
             } else {
@@ -155,13 +170,37 @@ module.exports = {
     logoutUser: async (req, res) => {
         try {
             console.log('logout msg');
-            req.session.destroy(async (err) => {
+            req.session.destroy((err) => {
                 if(err) throw err;
-                res.status(204).send();
+                res.sendStatus(204);
             });
         } catch (err) {
             console.log(err);
             res.status(500).send('Error getting naver user.' + err);
+        }
+    },
+
+    getEmailByUser: async (req, res) => {
+        try {
+            const userId = req.session.user.id;
+            userService.getEmailByUser(userId, (error, userData) => {
+                if(error) throw error;
+                if(userData) {
+                    res.render('users/profile', {
+                        "pageTitle": process.env.PAGE_TITLE,
+                        "username": req.session.user.name,
+                        "userimg": req.session.user.img,
+                        "nickname": req.session.user.nickname,
+                        "email": userData.email,
+                        "snsType": userData.snsType
+                    });
+                } else {
+                    throw 'Not found email';
+                }
+            });
+        } catch (error) {
+            console.log(error);
+            res.status(500).send('Error getting naver user.' + error);
         }
     }
 }

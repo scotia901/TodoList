@@ -2,8 +2,8 @@ require('dotenv').config();
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController')
-const userController = require('../controllers/userController')
+const authController = require('../controllers/authController');
+const userController = require('../controllers/userController');
 
 const naverId = process.env.NAVER_CLIENT_ID;
 const kakaoKey = process.env.KAKAO_REST_KEY;

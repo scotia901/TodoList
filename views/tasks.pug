@@ -7,7 +7,7 @@ html(lang="ko")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css")
         link(rel="stylesheet" href="/css/tasks/styles.css")
         script(type="text/javascript" src="/js/tasks/app.js")
-        //- script(type="text/javascript" src="/js/users/image.js")
+        script(type="text/javascript" src="/js/users/image.js")
         script(type="text/javascript" src="/taskUtility.js")
         link(rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css")
         script(src="https://code.jquery.com/jquery-1.12.4.js")
@@ -16,63 +16,48 @@ html(lang="ko")
     body
         div(id="sidebar")
             div(id="user")
-                div(id="user_img_area" onclick="viewUserInfo()")
+                div(id="user-img-area" onclick="viewUserInfo()")
                         if userimg
-                            img(name="user_img" id="user_img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
-                div(id="user_info")
-                    a(id="username")=username
-                    if username = true
+                            img(name="user-img" id="user-img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
+                div(id="user-info")
+                    a(id="nickname")=nickname
+                    if nickname = true
                         div
-                            button(id="user_info_btn" name="user_info_btn" onclick="viewUserInfo()") 내정보
-                            button(id="logout_btn" name="logout_btn" onclick="logout()") 로그아웃
-            div(id="search_tasks_area")
+                            button(id="user-info-btn" name="user-info-btn" onclick="viewUserInfo()") 내정보
+                            button(id="logout-btn" name="logout-btn" onclick="logout()") 로그아웃
+            div(id="search-tasks-area")
                 form(onsubmit="event.preventDefault(); searchTasks();", autocomplete="off" method="get" style="display:flex;") 
-                    input(type="text" id="search_text" placeholder="Search")
-                    button(type="submit" id="search_btn")
-                        i(id="search_icon" class="fa fa-search")
-            ul(class="categories_list" id="common_categories")
+                    input(type="text" id="search-text" placeholder="Search")
+                    button(type="submit" id="search-btn")
+                        i(id="search-icon" class="fa fa-search")
+            ul(class="categories-list" id="common-categories")
                 li(class="category")
-                    a(href="/tasks/today" class="category_name")="오늘 할 일"
+                    span(class="category-name today")="오늘 할 일"
                 li(class="category")
-                    a(href="/tasks/import" class="category_name")="중요"
+                    span(class="category-name importance")="중요"
                 li(class="category")
-                    a(href="/tasks/plan" class="category_name")="계획된 일정"
+                    span(class="category-name planed")="계획된 일정"
                 li(class="category")
-                    a(href="/tasks/work" class="category_name" onclick="")="작업"
-            div(id="division_line")
-            ul(class="categories_list" id="personal_categories")
-                //- each category in categories
-                //-     if category.name != "오늘 할 일" && category.name != "중요" && category.name != "계획된 일정" && category.name != "작업"
-                //-         li(class="category")
-                //-             a(href="/tasks/category?categoryId=" + category.id class="category_name")=category.name
-            div(id="new_list")
+                    span(class="category-name work")="작업"
+            div(id="division-line")
+            ul(class="categories-list" id="personal-categories")
+            div(id="create-category")
                 div(style="position: absolute; float: left; height: 54px;")
-                    button(type="submit" name="new_list_btn" id="new_list_btn" onclick="addCategory()") 목록 추가
-                    label(for="new_list_btn")
+                    button(type="submit" name="create-category-button" id="create-category-button") 목록 추가
+                    label(for="create-category-button")
                 div(style="height:100%; margin-left: 45px")
-                    input(type="text" name="new_list_name" id="new_list_name" placeholder="새 목록" autocomplete="off")
+                    input(type="text" name="create-category-name" id="create-category-name" placeholder="새 목록" autocomplete="off")
         div(id="content")
             div(id="top")
-                div(id="title")
-                    if currentPage != "오늘 할 일" && currentPage != "중요" && currentPage != "계획된 일정" && currentPage != "작업"
-                        h1
-                            a(id="category_title")=currentPage
-                    else
-                        h1(id="category_title")=currentPage
-                if currentPage == "오늘 할 일"
-                    div(id="today_area")
-                        h2= today
-                if currentPage != "오늘 할 일" && currentPage != "중요" && currentPage != "계획된 일정" && currentPage != "작업" && currentPage != "검색 결과"
-                    div(id="delete_category_area")
-                        button(class="category_icon_area" id="rename_category" onclick="renameCategory()")
-                            i(id="edit_icon" class="fa fa-pencil-square")
-                        button(class="category_icon_area" id="delete_category" onclick="deleteCategory()")
-                            i(id="trash_icon" class="fa fa-trash")
+                span(class="category-title")
+                    span(class="category-title-text")
+                button(class="delete-category-button")
+                    span(class="fa fa-trash button-icon")
             div(id="tasks")
-            div(id="bottom_area")
-                form(id="post_todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 
+            div(id="bottom-area")
+                form(id="post-todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 
                     div(style="position: absolute; float: left; height: 54px;")
-                        button(type="submit" name="post_btn" id="post_task_btn") 작업 추가
-                        label(for="post_task_btn")
+                        button(type="submit" name="post-btn" id="post-task-btn") 작업 추가
+                        label(for="post-task-btn")
                     div(style="height:100%; margin-left: 45px")
-                        input(type="text" name="post_msg" id="post_task_msg" placeholder="작업 추가" autocomplete="off")
+                        input(type="text" name="post-msg" id="post-task-msg" placeholder="작업 추가" autocomplete="off")

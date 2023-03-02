@@ -3,9 +3,6 @@ const TaskController = require('../controllers/TaskController');
 const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
-const taskmanager = require('../utilities/taskUtility');
-const userService = require('../services/userService');
-const taskService = require('../services/taskService');
 const todoDbOptions = {
     host: process.env.MYSQL_HOST,
     port: process.env.MYSQL_PORT,
@@ -13,10 +10,6 @@ const todoDbOptions = {
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_TODO_DATABASE
 };
-
-const DEFAULT_CATEGORY = "오늘의 할 일";
-const DB_CONN_ERR_MSG = "DB CONNECTION FAILED";
-
 // router.use((req, res, next) => {
 //     if (!req.session.user) {
 //         const err = new Error('Forbidden');
@@ -55,9 +48,9 @@ router.get('/count', async (req, res, next) => {
     }
 });
 
+
 router.get('/', async (req, res, next) => {
     try {
-
         const dateOptions = {
             month: 'numeric',
             day: 'numeric',
@@ -65,42 +58,13 @@ router.get('/', async (req, res, next) => {
         };
         const today = new Intl.DateTimeFormat('ko-KR', dateOptions).format(new Date());
 
-
         res.render('tasks', {
             "pageTitle": process.env.PAGE_TITLE,
             "today": today,
-            "username": req.session.user.nickname,
-            "userimg": req.session.userimg,
-            "currentPage": "작업"
+            "nickname": req.session.user.nickname,
+            "userimg": req.session.userimg
         });
-        // const userId = req.session.user.id;
-        // taskService.getTodayToDoByUserId(userId);
-        // TaskController.getTasksByUserAndCategory(req, res);
-        // const connection = await mysql.createConnection(todoDbOptions);
-        // const [categories] = await connection.execute(
-        //     `SELECT name, hex(id) as id
-        //     FROM categories 
-        //     WHERE user_id = (SELECT id FROM users WHERE id = "${req.session.user.id}"
-        //     ORDER BY create_date DESC)`);
 
-        // await connection.end();
-        // await manager.connectDb();
-        // await manager.get();
-        // await manager.toHtml();
-        // await manager.disconnectDb();
-
-        // console.log(req.session.username);
-        
-        // res.render('tasks', {
-        //     "pageTitle": process.env.PAGE_TITLE,
-        //     "today": today,
-        //     "user_id": req.session.user_id,
-        //     "username": req.session.username,
-        //     "userimg": req.session.userimg,
-        //     "categories": categories,
-        //     "currentPage": manager.category,
-        //     "tasks": manager.html
-        // });
     } catch (err) {
         next(err);
     }
@@ -108,10 +72,16 @@ router.get('/', async (req, res, next) => {
 
 router.get('/work', async (req, res, next) => {
     try {
-        await TaskController.getTasksByUserAndCategory(req, res);
+        console.log(req.session);
+        res.send(req.session);
     } catch (err) {
         next(err);
     }
+});
+
+
+router.get('/category', async (req, res, next) => {
+        await TaskController.getTasksByUserAndCategory(req, res, next);
 });
 
 router.get('/import', async (req, res, next) => {
@@ -178,21 +148,6 @@ router.get('/plan', async (req, res, next) => {
 
 router.get('/work', async (req, res, next) => {
     try {
-            const connection = await mysql.createConnection(todoDbOptions);
-            const [categories] = await connection.execute(
-                `SELECT name, hex(id) as id
-                 FROM categories 
-                 WHERE user_id = (SELECT id FROM users WHERE user_id = "${req.session.user_id}"
-                 ORDER BY create_date DESC)`);
-
-            manager.category = "작업";
-            manager.user = req.session.user_id;
-            await connection.end();
-            await manager.connectDb();
-            await manager.get();
-            await manager.toHtml();
-            await manager.disconnectDb();
-            
             res.render('tasks', {
                 "pageTitle": process.env.PAGE_TITLE,
                 "user_id": req.session.user_id,
@@ -241,63 +196,8 @@ router.get('/category', async (req, res, next) => {
     // TaskController.getTaskByUserIdAndCategoryId(req, res);
 });
 
-router.post('/category', async (req, res) => {
-    console.log(req.session.user);
-    TaskController.postTaskByUserAndCategory(req, res);
-});
-
-router.put('/category/:id/:name', async (req, res, next) => {
-    try {
-        const connection = await mysql.createConnection(todoDbOptions);
-        await connection.execute(
-            `UPDATE categories
-             SET name = "${req.params.name}"
-             WHERE id = unhex("${req.params.id}")
-             AND user_id = (SELECT id FROM users WHERE user_id = "${req.session.user_id}")`);
-        await connection.end();
-        res.cookie("category_name", encodeURI(req.params.name), {
-            httpOnly: false,
-            sameSite: 'lax'
-        });
-        res.sendStatus(204);
-    } catch (err) {
-        next(err)
-    }
-})
-
-router.delete('/category', async (req, res, next) => {
-    try {
-        const connection = await mysql.createConnection(todoDbOptions);
-        await connection.execute(
-            `DELETE FROM tasks
-             WHERE category_id = unhex("${req.query.id}")
-             AND user_id = (SELECT id from users WHERE user_id = "${req.session.user_id}")`);
-        await connection.execute(
-            `DELETE FROM categories
-             WHERE id = unhex("${req.query.id}")
-             AND user_id = (SELECT id FROM users WHERE user_id = "${req.session.user_id}")`);
-        res.sendStatus(204);
-    } catch (err) {
-        next(err);
-    }
-});
-
-router.get("/search/:text", async (req, res, next) => {
+router.get("/search/:term", async (req, res, next) => {
     TaskController.searchTasksByUserAndTerm(req, res);
-    // try {
-    //     await manager.connectDb();
-    //     await manager.search(req.params.text);
-    //     await manager.toHtml();
-    //     await manager.disconnectDb();
-    //     res.cookie("category", encodeURI("검색 결과"), {
-    //         httpOnly: false,
-    //         sameSite: 'lax'
-    //     });
-
-    //     res.status(200).send(manager.html);
-    // } catch (err) {
-    //     next(err);
-    // }
 });
 
 router.post('/', async (req, res, next) => {
@@ -325,7 +225,7 @@ router.delete('/delete', async (req, res, next) => {
     }
 });
 
-router.put("/toggleCompleted", async (req, res, next) => {
+router.put("/toggle/completed", async (req, res, next) => {
     try {
         await TaskController.toggleTaskCompleted(req, res);
     } catch (err) {
@@ -333,18 +233,7 @@ router.put("/toggleCompleted", async (req, res, next) => {
     }
 });
 
-router.put('/incomplete/:id', async (req, res, next) => {
-    try {
-        const query = `UPDATE tasks SET achievement = 0 WHERE id = unhex("${req.params.id}")`
-        await manager.handle(req, query);
-
-        res.status(200).send(manager.html);
-    } catch (err) {
-        next(err);
-    }
-});
-
-router.put("/toggleImportance", async (req, res, next) => {
+router.put("/toggle/importance", async (req, res, next) => {
     try {
         await TaskController.toggleTaskImportance(req, res);
     } catch (err) {
@@ -352,12 +241,14 @@ router.put("/toggleImportance", async (req, res, next) => {
     }
 });
 
-router.put("/updateDeadline", async (req, res, next) => {
+router.put("/update/deadline", async (req, res, next) => {
     try {
         await TaskController.updateTaskDeadline(req, res);
     } catch (err) {
         next(err);
     }
-})
+});
+
+
 
 module.exports = router;

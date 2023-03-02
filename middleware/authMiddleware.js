@@ -29,10 +29,10 @@ module.exports = {
     },
 
     validateLogin: (req, res) => {
-            if (req.session.user) {
-                res.redirect('/tasks');
-            } else {
+            if (!req.session.user) {
                 res.redirect('/users/login');
+            } else {
+                next();
             }
     }
 }

@@ -1,5 +1,6 @@
 require('dotenv').config();
-const userController = require('../controllers/userController');
+const UserController = require('../controllers/userController');
+const uploadFileMiddleware = require('../middleware/uploadFileMiddleware');
 const PROFILE_IMG_PATH = process.env.PROFILE_IMG_PATH;
 const crypto = require('node:crypto');
 const fs = require('fs');
@@ -14,9 +15,9 @@ const storage = multer.diskStorage({
         cb(null, PROFILE_IMG_PATH);
     },
     filename: (req, file, cb) => {
-        const uniqueName = Math.round(Math.random() * 1E15);
+        const randomFileName = Math.round(Math.random() * 1E15);
         const ext = path.extname(file.originalname);
-        cb(null, uniqueName + ext)
+        cb(null, randomFileName + ext)
     }
 });
 const upload = multer({ storage: storage });
@@ -123,34 +124,34 @@ router.post('/login', async (req, res, next) => {
     }
 });
 
-router.get('/logout', async (req, res) => {
-    userController.logoutUser(req, res);
+router.delete('/logout', async (req, res) => {
+    await UserController.logoutUser(req, res);
 });
 
-router.use((req, res, next) => {
-    let findUrl = /(?:users\/find_)+/;
-    let joinUrl = /(?:users\/join)+/;
-    let loginUrl = /(?:users\/login\/)/;
+// router.use((req, res, next) => {
+//     let findUrl = /(?:users\/find_)+/;
+//     let joinUrl = /(?:users\/join)+/;
+//     let loginUrl = /(?:users\/login\/)/;
 
-    if(findUrl.test(req.originalUrl) == false && req.session.isLogined == true) {
-        next();
-    } else if(findUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
-        next();
-    } else if(joinUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
-        next();
-    } else if(loginUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
-        next();
-    } else {
-        res.redirect('/');
-    }
-});
+//     if(findUrl.test(req.originalUrl) == false && req.session.isLogined == true) {
+//         next();
+//     } else if(findUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+//         next();
+//     } else if(joinUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+//         next();
+//     } else if(loginUrl.test(req.originalUrl) == true && req.session.isLogined == undefined) {
+//         next();
+//     } else {
+//         res.redirect('/');
+//     }
+// });
 
 router.get('/find_id', (req, res) => {
     res.render('users/find_id', { "pageTitle": process.env.PAGE_TITLE });
 });
 
 router.post('/find_id/send', async (req, res) => {
-        userController.getUserByEmail(req, res);
+        UserController.getUserByEmail(req, res);
 });
 
 router.get('/find_id/results', (req, res) => {
@@ -293,7 +294,7 @@ const verifyJoinForm = async (req, res, next) => {
 }
 
 router.post('/join/submit', [verifyJoinForm], async (req, res) => {
-    userController.createUser(req, res);
+    UserController.createUser(req, res);
     // try {
     //     const pswd = await hashPassword(req.body.password);
     //     const code = crypto.randomBytes(64).toString("base64");
@@ -387,29 +388,15 @@ router.get('/join/welcome', (req, res) => {
 
 router.get('/profile', async (req, res) => {
     try {
-        const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [results] = await usersConnection.execute(`SELECT user_id, user_img, username, email FROM users WHERE user_id = "${req.session.user_id}"`);
-        let [emailUser, emailDomain] = results[0].email.split("@");
-        const [emailname, domain]= emailDomain.split(".");
-        emailUser = emailUser.substring(0,2) + emailUser.substring(2,).replace(/./g, "*");
-        emailDomain = emailname.substring(0,2) + emailname.substring(2,).replace(/./g, "*") + "." + domain;
-        const hiddenEmail = emailUser + "@" + emailDomain;
-
-        await usersConnection.end();
-        res.render('users/profile', {
-            "pageTitle": process.env.PAGE_TITLE,
-            "user_id": results[0].user_id,
-            "userimg": results[0].user_img,
-            "username": results[0].username,
-            "email": hiddenEmail
-        });
+        UserController.getEmailByUser(req, res);
     } catch (error) {
         res.sendStatus(500);
     }
 });
 
-router.post('/profile/img', upload.single('uploaded_file'), async (req, res) => {
+router.post('/profile/img', uploadFileMiddleware.single('uploaded_file'), async (req, res) => {
     try {
+        UserController.uploadUserImage(req, res);
         const usersConnection = await mysql.createConnection(todoDbOptions);
         const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE user_id="${req.session.user_id}"`);
         if(field) {

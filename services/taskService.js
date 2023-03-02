@@ -1,10 +1,8 @@
-const db = require('../db');
 const { Task, Category } = require('../models/userModel');
 const { Sequelize, Op } = require('sequelize');
 
 
 module.exports = {
-
     getAllUsers: (callback) => {
         db.query('SELECT * FROM users', (err, result) => {
             if(err) {
@@ -25,37 +23,117 @@ module.exports = {
             })
             return result
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     },
 
-    getTasksByUserAndCategory: async (userId, categoryId, callback) => {
+    getTasksByUserAndCategory: async (userId, categoryId) => {
+        try {
+        const tasks = await Task.findAll({
+            attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+            raw: true,
+            where : {
+                UserId: userId,
+                CategoryId: categoryId,
+            }, include: {
+                attributes: ['name'],
+                model: Category
+            }
+        });
+        
+        return Promise.resolve(tasks);
+    } catch (error) {
+        return Promise.reject(error);
+    }
+    },
+
+    getImportantTasks: async (userId) => {
+        try {
+        const tasks = await Task.findAll({
+            attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+            raw: true,
+            where : {
+                UserId: userId,
+                importance: true
+            }, include: {
+                attributes: ['name'],
+                model: Category
+            }
+        });
+                    
+        return Promise.resolve(tasks);
+    } catch (error) {
+        return Promise.reject(error);
+    }
+    },
+
+    getPlanedTasks: async (userId) => {
+        try {
             const tasks = await Task.findAll({
                 attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
                 raw: true,
                 where : {
                     UserId: userId,
-                    CategoryId: categoryId
+                    deadline: { [Op.ne]: null }
+                }, include: {
+                    attributes: ['name'],
+                    model: Category
+                }
+            });
+            
+            return Promise.resolve(tasks);
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    },
+
+    getTodayTasks: async (userId) => {
+        try {
+            const today = new Intl.DateTimeFormat('ko-KR').format(new Date());
+
+            console.log(today);
+    
+            const tasks = await Task.findAll({
+                attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+                raw: true,
+                where : {
+                    UserId: userId,
+                    deadline: today
                 }, include: {
                     attributes: ['name'],
                     model: Category
                 }
             });
 
-            if(tasks == null) {
-                const err = new Error('Not found tasks');
-                callback(err);
-            } else {
-                return Promise.resolve(tasks);
-            }
+            return Promise.resolve(tasks);
+        } catch (error) {
+            console.error(error);
+            return Promise.reject(error);
+        }
     },
 
-    searchTasksByUserAndTerm: async (userId, searchTerm, callback) => {
+    searchTasksByUserAndTerm: async (userId, searchTerm) => {
+        try {
         const tasks = await Task.findAll({
+            attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
             where: {
                 text: {
                     [Op.like]: searchTerm
                 },
+                UserId: userId
+            },
+        });
+            return Promise.resolve(tasks);
+        } catch (error) {
+            console.error(error);
+            return Promise.reject(error);
+        }
+    },
+
+    getWorkTasksByUser: async (userId, callback) => {
+        const tasks = await Task.findAll({
+            attributes: ['id', 'text', 'completed', 'deadline', 'importance'],
+            where: {
                 UserId: userId
             },
         });
@@ -83,7 +161,6 @@ module.exports = {
     },
 
     updateTaskTextByTaskId: async (userId, taskId, taskText, callback) => {
-        console.log(userId, taskId, taskText);
         await Task.update({
             text: taskText
         }, {

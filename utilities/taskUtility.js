@@ -1,198 +1,252 @@
 async function reformatToHtml(taskData) {
-    const category = true;
-    const tasks = JSON.parse(taskData);
-    const ul = document.createElement('ul');
-    ul.className = "tasks_lists";
+    try {
+        const tasks = taskData;
+        const tasksDivElement = document.getElementById('tasks');
+        const incompleteUlElement = document.createElement('ul');
+        const completedTasksBtnElment = document.createElement('button');
+        const completedUlElement = document.createElement('ul');
+        let incompleteTasks = new String();
+        let completedTasks = new String();
+        let completedCount = 0;
+        let incompleteCount = 0;
     
-    // const incompleteUl = ul'<ul class="task_lists" id="incomplete_ul">';
-    const incompleteUl = document.createElement('ul');
-    incompleteUl.className = 'task_lists';
-    incompleteUl.id = 'incomplete_ul';
-
-    const completedUl = document.createElement('ul');
-    completedUl.className = 'task_lists';
-    completedUl.id = 'completed_ul';
-    completedUl.display = 'block';
-    // const completedUl = '<ul class="task_lists" id="completed_ul" style="display: block;">';
-    let htmlFormat = new String();;
-    let incompleteTasks = new String();
-    let completedTasks = new String();
-    let completedCount = 0;
-    let incompleteCount = 0;
-    
-    for await (const task of tasks) {
-        if (task.completed == true) {
-            completedCount++
-            completedTasks += await reformatTask(task, completedCount);
-        } else {
-            incompleteCount++
-            incompleteUl.appendChild( await reformatTask(task, incompleteCount) );
+        incompleteUlElement.className = 'task-lists';
+        incompleteUlElement.id = 'incomplete-ul';
+        completedTasksBtnElment.innerText = '완료됨';
+        completedTasksBtnElment.className = 'complated-tasks-btn';
+        completedTasksBtnElment.value = '0';
+        completedUlElement.className = 'task-lists';
+        completedUlElement.id = 'completed-ul';
+        completedUlElement.display = 'block';
+            
+        for await (const task of tasks) {
+            if (task.completed == true) {
+                completedCount++
+                completedUlElement.appendChild( await reformatTask(task) );
+            } else {
+                incompleteCount++
+                incompleteUlElement.appendChild( await reformatTask(task) );
+            }
         }
+    
+        while (tasksDivElement.firstChild) tasksDivElement.removeChild(tasksDivElement.firstChild);
+        tasksDivElement.appendChild(incompleteUlElement);
+        tasksDivElement.appendChild(completedTasksBtnElment);
+        tasksDivElement.appendChild(completedUlElement);
+        /*
+        div(id="delete-category-area")
+                        button(class="category-icon-area" id="rename-category" onclick="renameCategory()")
+                            i(id="edit-icon" class="fa fa-pencil-square")
+                        button(class="category-icon-area" id="delete-category" onclick="deleteCategory()")
+                            i(id="trash-icon" class="fa fa-trash")
+        
+        */
+    } catch (error) {
+        console.error(error);
     }
 
-    const completed_title = (completedCount > 0 )?
-                            `<div id="completed_title_area">
-                            <a id="completed_title">완료됨 ${completedCount}</a></div>`
-                            : "";
-
-    if(category == false) {
-        ul.appendChild(incompleteTasks);
-
-        htmlFormat = '<ul class="task_lists">' + incompleteTasks + completedTasks + '</ul>'; 
-    } else {
-        console.log(incompleteUl)
-        // incompleteUl.appendChild(incompleteTasks);
-        htmlFormat = incompleteUl + incompleteTasks + '</ul>' + completed_title + completedUl + completedTasks + "</ul>";
-    }
-
-    return incompleteUl;
 }
 
-async function reformatTask(task, count) {
+async function reformatTask(taskData) {
+    const task = document.createElement('li');
+    const taskText = document.createElement('i');    
+    const dropdownMenu = document.createElement('ul');
+    const inputDeadline = document.createElement('input');
+    const additionalInfo = document.createElement('div');
+    const buttons = [{
+        label: 'toggle-completed-button',
+        icon: 'fa fa-sharp fa-regular fa-check button-icon',
+        value: taskData.completed,
+        description: taskData.completed == '1' ? '작업을 미완료로 표시' : '작업을 완료로 표시',
+        function: toggleCompleted
+    }, {
+        label: 'toggle-impotrance-button',
+        icon: taskData.importance == '1' ? 'fa fa-star button-icon' : 'fa fa-star-o button-icon',
+        value: taskData.importance,
+        description: taskData.importance == '1' ? '중요도 제거' : '중요로 표시',
+        function: toggleImportance
+    }, {
+        label: 'set-deadline-button',
+        icon: 'fa fa-calendar button-icon',
+        value: taskData.deadline ? taskData.deadline : "",
+        description: '기한 설정',
+        function: setDeadline
+     }, {
+        label: 'update-text-button',
+        icon: 'fa fa-pencil-square-o button-icon',
+        description: '작업 텍스트 수정',
+        function: updateText
+    }, {
+        label: 'delete-task-button',
+        icon:  'fa fa-trash-o button-icon',
+        description: '작업 삭제',
+        function: deleteTask
+    }, {
+        label: 'show-dropdown-menu-button',
+        icon: 'fa fa-bars button-icon',
+        description: '드롭다운 메뉴 표시',
+        function: toggleDropdownMenu
+    }];
+    for await (const buttonData of buttons) {
+        const button = document.createElement('button');
+        const icon = document.createElement('span');
+        const name = document.createElement('span');
 
-    let result = new String();
-    const deadlineHtml = task.deadline ? await reformatDate(task.deadline) : null;
-    const li = document.createElement('li');
-    const categoryName = document.createElement('a');
-    const taskText = document.createElement('a');
-    const completedCheckbox = document.createElement('button');
-    const taskImportance = document.createElement('button');
-    const taskDeadline = document.createElement('button');
-    const updateTaskTextBtn = document.createElement('button');
-    const deleteTaskBtn = document.createElement('button');
-    const barsBtn = document.createElement('button');
+        button.className = buttonData.label;
+        icon.className = buttonData.icon;
+        name.className = 'button-description';
+        name.innerText = buttonData.description;
+        if(buttonData.value != undefined) button.value = buttonData.value;
+        
+        button.appendChild(icon);
+        button.appendChild(name);
+        task.appendChild(button);
+    }
     
-    li.className = 'items';
-    li.id = task.id;
+    const taskSubmenuButtons = {
+        setDeadlineBtn: task.getElementsByClassName('set-deadline-button')[0],
+        updateTextBtn: task.getElementsByClassName('update-text-button')[0],
+        deleteTaskBtn: task.getElementsByClassName('delete-task-button')[0]
+    };
 
-    categoryName.innerText = "작업";
-    categoryName.className = "task_category_name";
+    for (let i=0; i < task.childElementCount; i++) {
+        task.children[i].addEventListener('click', buttons[i].function);
+    }
+    for await (const [key, button] of Object.entries(taskSubmenuButtons)) {
+        const iElement = document.createElement('i');
+        button.appendChild(iElement);
+    }
 
-    completedCheckbox.type = 'checkbox';    
-    completedCheckbox.className = 'completed_checkboxes';
-    completedCheckbox.id = 'completed_checkbox';
-    completedCheckbox.value = task.completed;
-
-    taskText.className = 'task_text';
-    taskText.id = 'task_text';
-    taskText.innerText = task.text;
-
-    taskImportance.className = 'fa fa-star-o';
-    taskImportance.ariaHidden = 'true';
-    taskImportance.id = 'task_importance';
-    taskImportance.value = task.importance;
-
-    taskDeadline.className = 'fa fa-calendar';
-    taskDeadline.ariaHidden = 'true';
-    taskDeadline.id = 'task_deadline';
-    taskDeadline.value =  task.deadline? task.deadline : ""
-
-    updateTaskTextBtn.className = 'fa fa-pencil-square-o';
-    updateTaskTextBtn.ariaHidden = 'true';
-    updateTaskTextBtn.id = 'update_task_text';
-    updateTaskTextBtn.value =  task.deadline? task.deadline : ""
+    taskSubmenuButtons.setDeadlineBtn.value = '기한 설정';   
+    inputDeadline.className = 'input-deadline'; 
+    additionalInfo.className = 'additional-information';
+    dropdownMenu.className = 'dropdown-menu';
+    dropdownMenu.appendChild(taskSubmenuButtons.setDeadlineBtn);
+    dropdownMenu.appendChild(taskSubmenuButtons.updateTextBtn);
+    dropdownMenu.appendChild(taskSubmenuButtons.deleteTaskBtn);
+    task.className = 'task-container';
+    task.id = taskData.id;
+    taskText.className = 'task-text';
+    taskText.innerText = taskData.text;
+    task.insertBefore(taskText, task.children[1]);
+    task.getElementsByClassName('show-dropdown-menu-button')[0].appendChild(dropdownMenu);
+    task.appendChild(inputDeadline);
+    task.appendChild(additionalInfo);
+    if (taskData.completed) taskText.classList.add('completed');
+    if (taskData.deadline) additionalInfo.appendChild(reformatDate(taskData.deadline));
     
-    deleteTaskBtn.className = 'fa fa-trash-o';
-    deleteTaskBtn.ariaHidden = 'true';
-    deleteTaskBtn.id = 'delete_task';
+    async function toggleDropdownMenu (event) {
+        const dropdownMenuBtn = event.target.tagName == 'SPAN' ? event.target.parentElement : event.target; 
+        const activeBtn = document.getElementsByClassName('show-dropdown-menu-button active')
+        
+        if(activeBtn.length > 0) {
+            for await (const button of activeBtn) {
+                if(dropdownMenuBtn != button) button.classList.remove('active');
+            }
+        }
 
-    barsBtn.className = 'fa fa-bars';
-    barsBtn.ariaHidden = 'true';
-    barsBtn.id = 'delete_task';
-    barsBtn.value =  task.deadline? task.deadline : ""
-
-    li.appendChild(completedCheckbox);
-    li.appendChild(taskText);
-    li.appendChild(taskDeadline);
-    li.appendChild(taskImportance);
-    li.appendChild(updateTaskTextBtn);
-    li.appendChild(deleteTaskBtn);
-    li.appendChild(barsBtn);
-
-    completedCheckbox.addEventListener('click', (event) => {
-        const task = event.target.parentElement;
-        const taskCompleted = event.target;
-        const body = { taskId: task.id }
-
+        if(dropdownMenuBtn.classList.contains('active')) {
+            dropdownMenuBtn.classList.remove('active');
+        } else {
+            dropdownMenuBtn.classList.add('active');
+        }
+    }
+    
+    function toggleCompleted (event)  {
+        const completedUl = document.getElementById('completed-ul');
+        const incompleteUl = document.getElementById('incomplete-ul');
+        const completedBtn = event.target.tagName == 'SPAN' ? event.target.parentElement : event.target;
+        const body = { taskId: taskData.id }
+        const taskText = task.getElementsByClassName('task-text')[0];
+    
         fetch('/tasks/toggle/completed', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         }).then(response => {
             if(response.ok) {
-                taskCompleted.value ^= 1;
+                completedBtn.value ^= 1;
+                taskText.classList.toggle('completed');
+    
+                if(completedBtn.value == 1) {
+                    completedUl.appendChild(task);
+                } else {
+                    incompleteUl.appendChild(task);
+                }
             } else {
-                throw new Error('Network response was not ok.')
+                throw new Error('Network response was not ok.');
             }
         }).catch(error => {
             console.error(error);
         });
-    });
-
-
-    deleteTaskBtn.addEventListener('click', (event) => {
-        const task = event.target.parentElement;
-        const body = { taskId: task.id }
-
-        fetch('/tasks/delete', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        }).then(response => {
-            if(response.ok) {
-                task.remove();
-            } else {
-                throw new Error('Network response was not ok.')
-            }
-        }).catch(error => {
-            console.error(error);
-        });
-    });
-
-    updateTaskTextBtn.addEventListener('click', (event) => {
-        const taskText = prompt("수정할 내용을 입력해 주세요.");
-        if(!taskText) return;
-
-        const task = event.target.parentElement;
-        const body = { taskId: task.id, taskText: taskText }
-
+    };
+    
+    function deleteTask () {
+        if(confirm('작업을 삭제 하시겠습니까?')) {
+            const body = { taskId: taskData.id }
+        
+            fetch('/tasks/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(response => {
+                if(response.ok) {
+                    task.remove();
+                } else {
+                    throw new Error('Network response was not ok.')
+                }
+            }).catch(error => {
+                console.error(error);
+            });
+        }
+    };
+    
+    function updateText () {
+        const taskTextInput = prompt("수정할 내용을 입력해 주세요.");
+        if(!taskTextInput) return;
+        const body = { taskId: taskData.id, taskText: taskTextInput }
+        const taskText = task.children[1]
+        
         fetch('/tasks/update/text', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         }).then(response => {
             if(response.ok) {
-                task.children['task_text'].innerText = taskText;
+                taskText.innerText = taskTextInput;
             } else {
                 throw new Error('Network response was not ok.')
             }
         }).catch(error => {
             console.error(error);
         });
-    });
-
-    taskImportance.addEventListener('click', (event) => {
-        const task = event.target.parentElement;
-        const taskImportance = event.target;
-        const body = { taskId: task.id }
-
+    };
+    
+    function toggleImportance (event) {
+        const toggleImportanceBtn = event.target.tagName == 'SPAN' ? event.target.parentElement : event.target;
+        const starIcon = toggleImportanceBtn.firstChild;
+        const body = { taskId: taskData.id }
         fetch('/tasks/toggle/importance', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         }).then(response => {
             if(response.ok) {
-                taskImportance.value ^= 1;
-                const starIcon = taskImportance.value == 1 ? 'fa fa-star' : 'fa fa-star-o';
-                taskImportance.className = starIcon;
+                toggleImportanceBtn.value ^= 1;
+                starIcon.className = toggleImportanceBtn.value == 1 ? 'fa fa-star' : 'fa fa-star-o';
             } else {
                 throw new Error('Network response was not ok.')
             }
         }).catch(error => {
             console.error(error);
         });
-    });
+    };
 
+    function setDeadline () {
+        inputDeadline.style.display = 'block';
+        inputDeadline.focus();
+        inputDeadline.style.display = 'none';
+    }
 
     $.datepicker.setDefaults({
         dateFormat: 'yy-mm-dd',
@@ -207,107 +261,119 @@ async function reformatTask(task, count) {
         yearSuffix: '년'
     });
 
-    $( '.deadline' ).datepicker({
+    $( inputDeadline ).datepicker({
         currentText: '오늘',
         closeText: "닫기",
+        showOn: 'focus',
         showButtonPanel: true,
         beforeShow: function( input ) {
             setTimeout(function() {
                 var buttonPane = $( input )
-                    .datepicker( "widget" )
-                    .find( ".ui-datepicker-buttonpane" );
+                    .datepicker( 'widget' )
+                    .find( '.ui-datepicker-buttonpane' );
     
                 $( "<button>", {
-                    text: clearText,
+                    text: '지우기',
                     click: function() {
                         $.datepicker._clearDate( input );
                     }
-                }).appendTo( buttonPane ).addClass("ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all");
+                }).appendTo( buttonPane ).addClass('ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all');
             }, 1 );
         },
         onChangeMonthYear: function( year, month, instance ) {
             setTimeout(function() {
                 var buttonPane = $( instance )
-                    .datepicker( "widget" )
-                    .find( ".ui-datepicker-buttonpane" );
+                    .datepicker( 'widget' )
+                    .find( '.ui-datepicker-buttonpane' );
     
                 $( "<button>", {
-                    text: clearText,
+                    text: "지우기",
                     click: function() {
                         $.datepicker._clearDate( instance.input );
                     }
-                }).appendTo( buttonPane ).addClass("ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all");
+                }).appendTo( buttonPane ).addClass('ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all');
             }, 1 );
         }
-    }).on("input change", function(e) {
-        const xhr = new XMLHttpRequest();
-        const taskId = $(this).parent().parent().attr("id");
-        let taskDeadline = e.target.value
-        if(e.target.value == "") taskDeadline = "0000-00-00";
-        const body = "&taskId=" + taskId + "&taskDeadline=" + taskDeadline
+    }).on('input change', async function (event) {
+        const taskDeadline = event.target.value != '' ? new Date(event.target.value) : '0000-00-00';
+        const body = { taskId: taskData.id, taskDeadline: taskDeadline };
 
-        xhr.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-                const deadlineTextElement = document.getElementById(taskId).children[4].children['deadline_text'];
-                deadlineTextElement.replaceWith(this.responseText);
-                setDeadline();
+        fetch('/tasks/update/deadline', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }).then(response => {
+            if(response.ok) {
+                const reformatedDate = reformatDate(taskDeadline);
+                const additionalInfo = event.target.parentElement.lastElementChild;
+                
+                if(reformatedDate == null) {
+                    additionalInfo.firstChild.remove();
+                } else if(!additionalInfo.firstChild) {
+                    additionalInfo.prepend(reformatedDate);
+                } else {
+                    additionalInfo.firstChild.replaceWith(reformatedDate);
+                }
+                $( inputDeadline ).hide();
+            } else {
+                throw new Error('Network response was not ok.');
             }
-        }
-        xhr.open("put", "/tasks/update/deadline", true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send(body);
+        }).catch(error => {
+            console.error(error);
+        });
+
+    $( inputDeadline ).hide();
     });
 
-    return Promise.resolve(li);
+    return Promise.resolve(task);
 }
 
-async function appednChildren() {
+function reformatDate(date) {
+    if(date != '0000-00-00') {
+        const deadline  = new Date(date);
+        const today = new Date();
+        const tomorrow = new Date();
+        let reformatedDate = new String();
+        const deadlineText = document.createElement('div');
+        const calendarIcon = document.createElement('span');
+
+        deadlineText.className = 'deadline-text';
+        calendarIcon.className = 'calendar-icon';
+        calendarIcon.className = 'fa fa-calendar text-icon';
+        calendarIcon.ariaHidden = 'true';
+        tomorrow.setDate(tomorrow.getDate() + 1);
     
-}
-
-async function reformatDate(date) {
-    const today = new Date();
-    const deadline  = new Date(date);
-    const tomorrow = new Date();
-    let reformatedDate = new String();
-    const deadlineTextDiv = document.createElement('div');
-    const deadlineTextA = document.createElement('a');
-    const calendarIcon = document.createElement('a');
-
-    deadlineTextDiv.id = 'deadline_text';
-    deadlineTextA.id = 'deadline_text';
-    calendarIcon.id = 'calendar_icon';
-    calendarIcon.class = 'fa fa-calendar';
-    calendarIcon.ariaHidden = 'true';
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if(deadline.getFullYear() == today.getFullYear() && deadline.getMonth() == today.getMonth() && deadline.getDate() == today.getDate()) {
-        reformatedDate = "오늘";
-    } else if(deadline.getFullYear() == tomorrow.getFullYear() && deadline.getMonth() == tomorrow.getMonth() && deadline.getDate() == tomorrow.getDate()) {
-        reformatedDate =  "내일";
-    } else if(deadline.getFullYear() == today.getFullYear()) {
-        const date = deadline.toLocaleDateString(undefined, {
-            weekday: "short",
-            month: "short",
-            day: "numeric"
-        });
-
-        reformatedDate = date;
+        if(deadline.getFullYear() == today.getFullYear() && deadline.getMonth() == today.getMonth() && deadline.getDate() == today.getDate()) {
+            reformatedDate = "오늘";
+        } else if(deadline.getFullYear() == tomorrow.getFullYear() && deadline.getMonth() == tomorrow.getMonth() && deadline.getDate() == tomorrow.getDate()) {
+            reformatedDate =  "내일";
+        } else if(deadline.getFullYear() == today.getFullYear()) {
+            const date = deadline.toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric"
+            });
+    
+            reformatedDate = date;
+        } else {
+            const date = deadline.toLocaleDateString(undefined, {
+                weekday: "short",
+                year: "numeric",
+                month: "short",
+                day: "numeric"
+            });
+    
+            reformatedDate = date;
+        }
+        
+        deadlineText.innerText = reformatedDate;
+        deadlineText.prepend(calendarIcon);
+    
+        return deadlineText;
     } else {
-        const date = deadline.toLocaleDateString(undefined, {
-            weekday: "short",
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-        });
-
-        reformatedDate = date;
+        return null;
     }
-    
-    deadlineTextA.innerText = reformatDate;
-    deadlineTextDiv.appendChild(calendarIcon);
-    deadlineTextDiv.appendChild(deadlineTextA);
 
-    return Promise.resolve(deadlineTextDiv);
+
 }
 

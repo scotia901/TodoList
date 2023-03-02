@@ -1,24 +1,39 @@
 const TaskService = require('../services/taskService');
-const categoryService = require('../services/categoryService');
-const TaskUtility = require('../utilities/taskUtility');
-
 module.exports = {
+    getTasksByUserAndCategory: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+            const categoryId = req.session.category.id;
+            const categoryName = req.session.category.name;
+            let tasks = new Object();
 
-    getTasksByUserAndCategory: async (req, res) => {
+            if(categoryId == null && categoryName == '중요') {
+                tasks = await TaskService.getImportantTasks(userId, categoryName);
+            } else if(categoryId == null && categoryName == '계획된 일정') {
+                tasks = await TaskService.getPlanedTasks(userId, categoryName);
+            } else if(categoryId == null && categoryName == '오늘 할 일') {
+                tasks = await TaskService.getTodayTasks(userId, categoryName);
+            } else {
+                tasks = await TaskService.getTasksByUserAndCategory(userId, categoryId);
+            }
+            res.status(200).send(tasks);
+        } catch (error) {
+            console.error(error);
+            next(error);
+        }
+    },
+
+    getWorkTasksByUser: async (req, res) => {
         const userId = req.session.user.id;
-        const categoryId = req.query.categoryId ? req.query.categoryId : null;
-        const categoryName = req.query.categoryName ? req.query.categoryName : null;
-        
-        const tasks = await TaskService.getTasksByUserAndCategory(userId, categoryId, (err) => {
+        const tasks = await TaskService.getWorkTasksByUser(userId, (err) => {
             if(err) throw err;
         });
-
         res.status(200).json(tasks);
     },
 
     searchTasksByUserAndTerm: async (req, res) => {
         const userId = req.session.user.id;
-        const searchTerm = '%' + req.params.text + '%'
+        const searchTerm = '%' + req.params.term + '%';
         
         const tasks = await TaskService.searchTasksByUserAndTerm(userId, searchTerm, (err) => {
             if (err) throw err;
@@ -29,7 +44,7 @@ module.exports = {
     postTaskByUserAndCategory: async (req, res) => {
         const userId = req.session.user.id;
         const taskText = req.body.taskText;
-        const categoryId = req.body.categoryId ? req.body.categoryId : null;
+        const categoryId = req.session.category.id;
 
         const task = await TaskService.postTaskByUserAndCategory(userId, taskText, categoryId);
         res.status(200).json(task);
@@ -64,7 +79,6 @@ module.exports = {
                 res.status(500).send('Error deleting task by taskid');
             } else {
                 if (task) {
-                    console.log(task);
                     res.sendStatus(200);
                 } else {
                     res.status(404).send('Not found task');
@@ -76,6 +90,7 @@ module.exports = {
     toggleTaskImportance: async (req, res) => {
         const userId = req.session.user.id;
         const taskId = req.body.taskId;
+
         await TaskService.toggleTaskImportance(userId, taskId, (err, task) => {
             if (err) {
                 console.error(err);
@@ -119,8 +134,7 @@ module.exports = {
                 res.status(500).send('Error deleting task by taskid');
             } else {
                 if (task) {
-                    const updatedTaskDeadline = await TaskUtility.reformatDate(deadline)
-                    res.status(200).send(updatedTaskDeadline);
+                    res.sendStatus(200);
                 } else {
                     res.status(404).send('Not found task');
                 }

@@ -18,6 +18,48 @@ module.exports = {
         });
     },
 
+    uploadUserImage: async (userId, filename, callback) => {
+        await User.findOne({
+            attributes: ['image'],
+            where: {
+                id: userId,
+            }
+        }).then(response => {
+            if(response) {
+                const imgPath = PROFILE_IMG_PATH + "/" + response[0].image;
+
+                fs.stat(imgPath, (error, stats) => {
+                    if (!error) {
+                        fs.unlink(imgPath, (error) => { if(error) throw error; });
+                    }
+                });
+            }
+        }).then(() => {
+
+        });
+
+        
+
+
+        // const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE user_id="${req.session.user_id}"`);
+        // if(field) {
+        //     const imgPath = PROFILE_IMG_PATH + "/" + field[0].user_img;
+
+        //     fs.stat(imgPath, (err, stats) => {
+        //         if (!err) {
+        //             fs.unlink(imgPath, (err) => {
+        //                 if(err) throw err;
+        //             });
+        //         }
+        //     });
+        // }
+
+        await usersConnection.execute(`UPDATE users SET user_img="${req.file.filename}" WHERE user_id="${req.session.user_id}"`);
+        await usersConnection.end();
+        req.session.user.image = req.file.filename;
+        res.sendStatus(200);
+    },
+
     getUserByUserId: async (userId, callback) => {
         const user = await User.findOne({
             attributes: ['nickname', 'userId'],
@@ -50,14 +92,14 @@ module.exports = {
         }
     },
 
-    getUserByEmail: function (userEmail, callback)  {
+    getUserByEmail: (userEmail, callback) => {
         db.execute(`SELECT user_id FROM users WHERE email = "${userEmail}"`, function (err, row, result) {
             if (err) {
                 callback(err, null);
             } else {
                 let userId = new Array;
                 row.forEach(element => {
-                    element.user_id
+                    element.user_id;
                     userId.push(element.user_id);
                 });
                 callback(null, userId);
@@ -67,7 +109,7 @@ module.exports = {
 
     createUser: async (userData, callback) => {
         const userService = require('../services/userService')
-        await userService.hashPassword(userData.password, (err, password) => {
+        userService.hashPassword(userData.password, (err, password) => {
             if(err) {
                 console.log(err);
                 callback(err, null);
@@ -175,7 +217,7 @@ module.exports = {
         try {
 
             console.log(userData);
-            const nickname = userData.nickname? userData.nickname : "익명" ;
+            const nickname = userData.nickname ? userData.nickname : "익명" ;
             const snsId = userData.snsId;
             const email = userData.email;
             const snsType = userData.snsType;
@@ -192,5 +234,22 @@ module.exports = {
         } catch (err) {
             console.error(err);
         }
+    },
+
+    getEmailByUser: async (userId, callback) => {
+        try {
+            let result = await User.findOne({
+                attributes: ['email', 'snsType'],
+                where: { id: userId }
+            });
+            const regEx = /(?<=.{2})[^@\n](?=[^@\n]*?@)|(?<=\w{2})[^@\n](?=[^@\n]*?[.])/g
+            result.email = result.email.replace(regEx, '*');
+
+            if(result) callback(null, result);
+        } catch (error) {
+            console.log(error);
+            callback(error, null);
+        }
+
     }
 }

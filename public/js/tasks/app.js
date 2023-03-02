@@ -1,31 +1,127 @@
-window.addEventListener('load', async (e) => {
-    e.preventDefault();
+window.addEventListener('load', async (event) => {
+    event.preventDefault();
+    const createCategoryBtn = document.getElementById('create-category-button');
+    const deleteCategoryBtn = document.getElementsByClassName('delete-category-button')[0];
+    createCategoryBtn.addEventListener('click', createCategory);
+    deleteCategoryBtn.addEventListener('click', deleteCategory);
+    // const nickname
+    await makeDefaultUserImg(document.getElementById('nickname').innerText);
+    await getCategoriesByUser();
+    await getCommonCategoryTasks();
     await getTasksByUserAndCategory();
-    await toggleCompletedTasks();
-    await setCategory();
-    await setDeadline();
-    await resizeTasks();
-    await renameCategory();
     // await getTasksCount();
+    await renameCategory();
+    await resizeTasks();
+    updateCategoryTitle();
 });
 
-async function getTasksByUserAndCategory() {
-    const xhr = new XMLHttpRequest();
-    // const body = "&taskId=" + taskId;
+async function getCommonCategoryTasks() {
+    const commonCategories = document.getElementById('common-categories').children;
+    
+    for await (const category of commonCategories) {
+        const categoryName = category.firstChild.innerText;
 
-    xhr.onreadystatechange = async function () {
-        if (this.readyState == 4 && this.status == 200) {
-            console.log(this.status);
-            
-            document.getElementById('tasks').appendChild( await reformatToHtml(this.response) );
-            toggleCompletedTasks();
-            setDeadline();
+        category.addEventListener('click', async (event) => {
+            await changeCurrentCategory(event, null, categoryName);
+        });
+    }
+}
+
+async function changeCurrentCategory (event, categoryId, categoryName) {
+    await updateCurrentCategoryToSession(categoryId, categoryName);
+    await getTasksByUserAndCategory();
+    selectCategory(event);
+    updateCategoryTitle();
+    resizeTasks();
+}
+
+function sample() {
+    sampleA();
+}
+
+function sampleA () {
+    try {
+        sampleB (a , (err) => {
+            if(err) throw ('Error');
+        });
+    } catch (error) {
+        console.log(error);
+    }
+    function sampleB (int , callback) {
+        if("number"  == typeof int) {
+            callback(err);
+        } else {
+            callback(null);
         }
     }
-    xhr.open("get", "/tasks/work", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
 }
+
+function selectCategory(object) {
+    const activeCategory = document.getElementsByClassName('category active')[0];
+    let target = {};
+    if(object instanceof PointerEvent) {
+        target = object.target.tagName == 'SPAN' ? object.target.parentElement : object.target;
+    } else {
+        target = object.parentElement;
+    }
+
+    if(activeCategory) activeCategory.classList.remove('active');
+    target.classList.add('active');
+}
+
+async function getCategoriesByUser() {
+    await fetch('/categories', {
+        method: 'GET'
+    }).then(async response => {
+        if(response.ok) {
+            const categories = await response.json();
+            const personalCategories = document.getElementById('personal-categories');
+            const currentCategory = await fetch('/categories/current').then(async response => { return Promise.resolve(await response.json())});
+
+            for await (const category of categories) {
+                const categoryName = category.name;
+                const categoryId = category.id;
+                const liElemelnt = document.createElement('li');
+                const spanElement = document.createElement('span');
+
+                spanElement.className = 'category-name';
+                spanElement.innerText = categoryName;
+                liElemelnt.className = 'category';
+                liElemelnt.appendChild(spanElement);
+                liElemelnt.addEventListener('click', async (event) => {
+                    await changeCurrentCategory(event, categoryId, categoryName);
+                });
+
+                if(currentCategory.id == categoryId && currentCategory.name == categoryName) {
+                    liElemelnt.classList.add('active');
+                } else {
+                    switch (currentCategory.name) {
+                        case '오늘 할 일':
+                            document.getElementsByClassName('category-name today')[0].parentElement.classList.add('active');
+                            break;
+                        case '중요':
+                            document.getElementsByClassName('category-name importance')[0].parentElement.classList.add('active');
+                            break;
+                        case '계획된 일정':
+                            document.getElementsByClassName('category-name planed')[0].parentElement.classList.add('active');
+                            break;
+                        case '작업':
+                            document.getElementsByClassName('category-name work')[0].parentElement.classList.add('active');
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                personalCategories.appendChild(liElemelnt);
+            }
+        } else {
+            throw new Error('Network response was not ok.');
+        }
+    }).catch(error => {
+        console.error(error);
+    });
+};
 
 window.addEventListener('resize', async (e) => {
     const contentMarginL = 30;
@@ -45,122 +141,99 @@ window.addEventListener('resize', async (e) => {
     await resizeTasks();
 });
 
-function toggleTaskImportance(taskId) {
-    const xhr = new XMLHttpRequest();
-    const body = "&taskId=" + taskId;
+window.addEventListener('click', (event) => {
+    const target = event.target
+    const activeDropdownMenu = document.getElementsByClassName('show-dropdown-menu-button active')[0];
+    if(activeDropdownMenu != undefined && activeDropdownMenu.contains(event.target) == false) activeDropdownMenu.classList.remove('active');
+});
 
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            const taskImportance = document.getElementById(taskId).children[3].children[0];
-            taskImportance.value ^= 1;        
-            toggleCompletedTasks();
-            setDeadline();
-        }
-    }
-    xhr.open("put", "/tasks/toggleImportance", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send(body);
-}
-
-function toggleTaskCompleted(taskId) {
-    const xhr = new XMLHttpRequest();
-    const body = "&taskId=" + taskId;
-
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            const taskCompleted = document.getElementById(taskId).children[0];
-            taskCompleted.value ^= 1;
-            console.log(taskCompleted.value);
-            toggleCompletedTasks();
-            setDeadline();
-        }
-    }
-    xhr.open("put", "/tasks/toggleCompleted", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send(body);
-}
-
-function incompleteTask(taskId) {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("tasks").innerHTML = this.responseText;
-            toggleCompletedTasks();
-            setDeadline();
-        }
-    }
-    xhr.open("put", "/tasks/incomplete/" + taskId, true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
-}
-
-function updateTaskText(taskId) {
-    const xhr = new XMLHttpRequest();
-    const taskText = prompt("수정할 내용을 입력해 주세요.");
-    if (!taskText) { return }
+function createCategory() {
+    const categoryName = document.getElementById('create-category-name');
+    const body = { name: categoryName.value };
     
-    const body = "&taskId=" + taskId + "&taskText=" + taskText
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            document.getElementById(taskId).childNodes[5].innerText = taskText
-            toggleCompletedTasks();
-            setDeadline();
+    fetch('/categories/category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(async response => {
+        if(response.ok) {
+            const personalCategories = document.getElementById('personal-categories');
+            const liElemelnt = document.createElement('li');
+            const spanElement = document.createElement('span');
+            const categoryData = await response.json();
+
+            spanElement.className = 'category-name';
+            spanElement.innerText = categoryName.value;
+            liElemelnt.className = 'category';
+            liElemelnt.appendChild(spanElement);
+            liElemelnt.addEventListener('click', async (event) => {
+                await changeCurrentCategory(event, categoryData.id, categoryData.name);
+            });
+            personalCategories.appendChild(liElemelnt);
+            categoryName.value = '';
+        } else {
+            throw new Error('Network response was not ok.');
         }
-    }
-    xhr.open("put", "/tasks/update/text", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send(body);
+    }).catch(error => {
+        console.error(error);
+    });
 }
 
-function postTask() {
-    const xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = async function() {
-        if (this.readyState == 4 && this.status == 200) {
-            const ul = document.getElementById('incomplete_ul');
-            const li = document.createElement('li');
-            const postedTask = JSON.parse(this.response)
+async function updateCurrentCategoryToSession (categoryId, categoryName) {
+    const body = { categoryId: categoryId, categoryName: categoryName }
+    await fetch('/categories/current', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(async response => {
+        if(response.ok) {
 
-            ul.prepend(await reformatTask(postedTask));
-
-            // li.innerHTML = ;
-            // ul.insertBefore(li, ul.firstChild);
-            document.getElementById("post_task_msg").value = "";
-            toggleCompletedTasks();
-            setDeadline();
-            resizeTasks();
+        } else {
+            throw new Error('Network response was not ok.');
         }
-    }
+    })
+};
 
-    const taskText = document.getElementById("post_task_msg").value;
-    const body = "&taskText=" + taskText;
+async function getTasksByUserAndCategory() {
+    await fetch('/tasks/category', {
+        method: 'GET'
+    }).then(async response => {
+        if(response.ok) {
+            const tasks = await response.json();
+            await reformatToHtml(tasks);
+        } else {
+            throw new Error('Network response was not ok.');
+        }
+    }).catch(error => {
+        console.error(error);
+    });
+}
 
+async function postTask() {
+    const taskText = document.getElementById("post-task-msg").value;
+    const body = { taskText: taskText }
     if (!taskText) { return }
-    xhr.open("post", "/tasks", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send(body);
-}
 
-function deleteTask(taskId) {
-    try {
-        if(confirm("정말로 삭제 하시겠습니까?")) {
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById(taskId).parentElement.remove();
-                    toggleCompletedTasks();
-                    setDeadline();
-                } else if (this.status == 400) {
-                    throw this.responseText;
-                }
-            }
-            const body = "&taskId=" + taskId;
-            xhr.open("delete", "/tasks/delete", true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send(body);
+    await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(async response => {
+        if(response.ok) {
+            const ul = document.getElementById('incomplete-ul');
+            const li = document.createElement('li');
+            const tasks = await response.json();
+
+            ul.prepend(await reformatTask(tasks));
+
+            document.getElementById("post-task-msg").value = "";
+        } else {
+            throw new Error('Network response was not ok.');
         }
-    } catch (error) {
-        alert(error);
-    }
+    }).catch(error => {
+        console.error(error);
+    });
+
 }
 
 function viewUserInfo() {
@@ -171,7 +244,7 @@ function logout() {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 204) {
-        location.href = "/";
+            location.href = "/";
         }
     }
     xhr.open("delete", "/users/logout", true);
@@ -182,117 +255,99 @@ async function resizeTasks() {
     const threshold = 750;
     const margin = 82;
     const marginWithSidebar = 282;
-    if (window.innerWidth < threshold) {
-        let taskBoxWidth = window.innerWidth - margin;
-        document.getElementById("post_todo").style.width = taskBoxWidth + "px";
+    const innerWidth = document.body.clientWidth || document.documentElement.clientWidth;
+    if (innerWidth < threshold) {
+        let taskBoxWidth = innerWidth - margin;
+        document.getElementById("post-todo").style.width = taskBoxWidth + "px";
     } else {
-        let taskBoxWidth = window.innerWidth - marginWithSidebar;
-        document.getElementById("post_todo").style.width = taskBoxWidth + "px";
+        let taskBoxWidth = innerWidth - marginWithSidebar;
+        document.getElementById("post-todo").style.width = taskBoxWidth + "px";
     }
 
 }
 
-async function toggleCompletedTasks() {
-    const samesite = "samesite=lax"
-    if(!getCookie("toggle")) document.cookie = "toggle=none;" + samesite
-    if(document.getElementById("completed_title_area")) {
-        document.getElementById("completed_ul").style.display = getCookie("toggle");
-        document.getElementById("completed_title_area").addEventListener('click', () => {
-            let compltedUl = document.getElementById("completed_ul");
-            const display = compltedUl.style.display;
-    
-            if(display == "none") {
-                compltedUl.style.display = "block";
-                document.cookie = "toggle=" + "block;" + samesite;
-            } else if(display == "block") {
-                compltedUl.style.display = "none";
-                document.cookie = "toggle=" + "none;" + samesite;
-            } else {
-                compltedUl.style.display = "block";
-                document.cookie = "toggle=" + "block;" + samesite;
-            }
-        });
-    }
-};
-
-function searchTasks() {
+async function searchTasks() {
     try {
-        const text = document.getElementById("search_text").value;
-        if(text) { 
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = async function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById('tasks').innerHTML = await reformatToHtml(this.response);
-                    document.getElementById("category_title").innerText = "검색 결과"
-                    if(document.getElementById("today_area")) document.getElementById("today_area").style.display = "none"
-                    document.querySelector('[style]').style.backgroundColor = "rgb(220, 220, 220)";
-                    setDeadline();
+        const term = document.getElementById("search-text").value;
+        const activeCurrentCategory = document.getElementsByClassName('category active')[0];
+        if(term) { 
+            await fetch('/tasks/search/' + term, {
+                method: 'GET'
+            }).then(async response => {
+                if(response.ok) {
+                    const tasks = await response.json();
+                    await reformatToHtml(tasks);
+                    document.getElementById("category-title").innerText = "검색 결과";
+                    if(activeCurrentCategory) activeCurrentCategory.classList.remove('active');
+                } else {
+                    throw new Error('Network response was not ok.');
                 }
-            }
-            xhr.open("get", "/tasks/search/" + text, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send();
+            }).catch(error => {
+                console.error(error);
+            });
+        } else {
+            await changeCurrentCategory(event, null, categoryName);
         }
     } catch (error) {
         alert(error);
     }
 }
 
-function addCategory() {
-    try {
-        const listName = document.getElementById("new_list_name").value;
-        if(listName) { 
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                location.reload();
+async function deleteCategory() {
+    const activeCategory = document.getElementsByClassName('category active')[0];
+    if(activeCategory || activeCategory.parentElement.id == 'personal-categories') {
+        if(confirm("카테고리를 삭제 하시겠습니까?")) {
+            await fetch('/categories/category', {
+                method: 'DELETE'
+            }).then(async response => {
+                if(response.ok) {
+                    const workCategory = document.getElementsByClassName('category-name work')[0];
+                    await getTasksByUserAndCategory();
+                    activeCategory.remove();
+                    updateCategoryTitle();
+                    activeCurrentCategory(workCategory);
+                } else {
+                    throw new Error('Network response was not ok.');
                 }
-            }
-            xhr.open("post", "/tasks/category/" + listName, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send();
-        }
-    } catch (error) {
-        alert(error);
-    }
-}
-
-function deleteCategory() {
-    if(confirm("카테고리를 삭제 하시겠습니까?")) {
-        const params = new URL(document.location).searchParams;
-        const id = params.get("id");
-        if(id) {
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    alert("카테고리를 삭제 하였습니다.");
-                    location.href = "/tasks/today";
-                } else if (this.status == 400) {
-                    alert("카테고리 삭제에 실패하였습니다.");
-                }
-            }
-            xhr.open("delete", "/tasks/category" + "?id=" + id, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send();
+            }).catch(error => {
+                console.error(error);
+            });
         }
     }
 }
 
-async function setCategory() {
+async function getCurrentCategory() {
+    fetch('/api/category/current', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(response => {
+        if(response.ok) {
+            const personalCategories = document.getElementById('personal-categories');
+            const li = document.createElement('li');
+            li.className = 'category';
+            li.innerText = categoryName.value;
+            personalCategories.appendChild(li)
+            categoryName.value = '';
+        } else {
+            throw new Error('Network response was not ok.')
+        }
+    }).catch(error => {
+        console.error(error);
+    });
+
     const params = new URL(document.location).searchParams;
     const id = params.get("id");
     const bgColor = "rgb(210, 210, 210)";
-    const seleCat = "selected_category";
     if(!id) {
-        let title = document.getElementById("category_title");
-        Array.from(document.getElementById("common_categories").childNodes).forEach((element) => {
+        let title = document.getElementById("category-title");
+        Array.from(document.getElementById("common-categories").childNodes).forEach((element) => {
             if(element.childNodes[0].innerText == title.innerText) {
                 element.style.backgroundColor = bgColor;
-                element.id = seleCat;
+                element.classList.add('active');
             }
         });
     } else {
-        Array.from(document.getElementById("personal_categories").childNodes).forEach((element) => {
+        Array.from(document.getElementById("personal-categories").childNodes).forEach((element) => {
             if(element.childNodes[0].href == document.location.href) {
                 element.style.backgroundColor = bgColor;
                 element.id = seleCat;
@@ -301,156 +356,83 @@ async function setCategory() {
     }
 }
 
+async function updateCategoryTitle() {
+    const activeCategory = document.getElementsByClassName('category active')[0];
+    const categoryTitle = document.getElementsByClassName('category-title')[0];
+
+    categoryTitle.firstChild.innerText = activeCategory.firstChild.innerText;    
+    if(!activeCategory || activeCategory.parentNode.id == 'personal-categories') {
+        categoryTitle.classList.add('personal-category');
+    } else {
+        categoryTitle.classList.remove('personal-category');
+    }
+}
+
 async function renameCategory() {
-    const params = new URL(document.location).searchParams;
-    const id = params.get("id");
-    if(id) {
-        document.getElementById("category_title").addEventListener('click', () => {
-            let category = document.getElementById("category_title");
-            let form = document.createElement("form");
-            let input = document.createElement("input");
-            let inputWidth = Math.max(Math.min(category.getBoundingClientRect().width, document.querySelector('h1').getBoundingClientRect().width) - 15, 40) + "px";
+    const categoryTitle = document.getElementsByClassName('category-title')[0];
+    const categoryTitleText = document.getElementsByClassName('category-title-text')[0];
+    const input = document.createElement("input");
+    const form = document.createElement("form");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const font = '30px bold';
+    const inputMinWidth = 10;
+    
+    categoryTitle.addEventListener('click', async () =>  {
+        if(categoryTitle.classList.contains('personal-category')) {
             form.setAttribute('action', '#');
             form.setAttribute('onsubmit', 'return false');
+            form.setAttribute('class', 'category-title personal-category');
             input.setAttribute('type', 'text');
-            input.setAttribute('id', "rename_category");
-            input.style.font = "30px bold";
-            input.style.padding = "5px";
-            input.style.width = inputWidth;
-            input.value = category.innerText;
+            input.setAttribute('id', 'rename-category');
+            input.style.padding = '7px';
+            form.style.padding = '0px';
+            input.style.font = font;
+            input.style.width = Math.min(categoryTitle.getBoundingClientRect().width, categoryTitleText.getBoundingClientRect().width) + inputMinWidth + "px";
+            input.value = categoryTitle.innerText;
             form.appendChild(input);
-            category.replaceWith(form);
+            categoryTitle.replaceWith(form);
             input.focus();
             input.select();
 
-            input.addEventListener('input', (e) => {
-                let canvas = document.createElement("canvas");
-                let ctx = canvas.getContext("2d");
-                ctx.font = "30px bold"; // 카테고리 제목 폰트 스타일 참조하도록 만들기
-                let text = input.value;
-                input.style.width = Math.min(document.getElementById("title").getBoundingClientRect().width - 15, ctx.measureText(text).width) + "px";
+            input.addEventListener('input', () => {
+                ctx.font = font; // 카테고리 제목 폰트 스타일 참조하도록 만들기
+                input.style.width = Math.max(categoryTitle.getBoundingClientRect().width, ctx.measureText(input.value).width) + inputMinWidth + "px";
             });
             input.addEventListener('keydown', (e) => {
-                switch (e.key) {
-                    case "Enter":
-                        input.blur();
-                        break;
-                        
-                    case "Escape":
-                        input.removeEventListener('focusout', send);
-                        form.replaceWith(category);
-                        break;
-                
-                    default:
-                        break;
+                if(e.key == 'Enter') input.blur();
+                if(e.key == 'Escape') {
+                    input.removeEventListener('focusout', send);
+                    form.replaceWith(categoryTitle);
                 }
             });
             input.addEventListener('focusout', send);
-
+    
             function send() {
-                if(!input.value || input.value == category.innerText) {
-                    form.replaceWith(category);
+                if(!input.value || input.value == categoryTitle.firstChild.innerText) {
+                    form.replaceWith(categoryTitle);
                 } else {
-                    var xhr = new XMLHttpRequest();
-                    xhr.onreadystatechange = function() {
-                        if (this.readyState == 4 && this.status == 200) {
-                            category.innerText = input.value;
-                            document.getElementById('selected_category').innerText = input.value;
-                            form.replaceWith(category);
-                        } else if (this.readyState == 4 && this.status == 400) {
-                            alert("알수 없는 오류로 변경 실패하였습니다.")
-                            //오류 알림후 무한 반복됨
-                            location.href = "/tasks/category?id=" + id;
+                    const body = { categoryName: input.value }
+                    fetch('/categories/category', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    }).then(response => {
+                        if(response.ok) {
+                            categoryTitle.firstChild.innerText = input.value;
+                            document.getElementsByClassName('category active')[0].firstChild.innerText = input.value;
+                            form.replaceWith(categoryTitle);
+                        } else {
+                            throw new Error('Network response was not ok.');
                         }
-                    }
-                    xhr.open("put", "/tasks/category/" + id + "/" + input.value, true);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-                    xhr.send();
+                    }).catch(error => {
+                        console.error(error);
+                    });
                 }
-            };
-        });
-    }
-}
-
-function getCookie(name) {
-    try {
-        return document.cookie
-        .split('; ')
-        .find(row => row.startsWith(name))
-        .split('=')[1];
-    } catch {
-        return null;
-    }
-}
-
-async function setDeadline() {
-    const clearText =  "지우기";
-    $.datepicker.setDefaults({
-        dateFormat: 'yy-mm-dd',
-        prevText: '이전 달',
-        nextText: '다음 달',
-        monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-        monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-        dayNames: ['일', '월', '화', '수', '목', '금', '토'],
-        dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
-        dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
-        showMonthAfterYear: true,
-        yearSuffix: '년'
-    });
-
-    $( ".deadline" ).datepicker({
-        currentText: '오늘',
-        closeText: "닫기",
-        showButtonPanel: true,
-        beforeShow: function( input ) {
-            setTimeout(function() {
-                var buttonPane = $( input )
-                    .datepicker( "widget" )
-                    .find( ".ui-datepicker-buttonpane" );
-    
-                $( "<button>", {
-                    text: clearText,
-                    click: function() {
-                        $.datepicker._clearDate( input );
-                    }
-                }).appendTo( buttonPane ).addClass("ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all");
-            }, 1 );
-        },
-        onChangeMonthYear: function( year, month, instance ) {
-            setTimeout(function() {
-                var buttonPane = $( instance )
-                    .datepicker( "widget" )
-                    .find( ".ui-datepicker-buttonpane" );
-    
-                $( "<button>", {
-                    text: clearText,
-                    click: function() {
-                        $.datepicker._clearDate( instance.input );
-                    }
-                }).appendTo( buttonPane ).addClass("ui-datepicker-clear ui-state-default ui-priority-primary ui-corner-all");
-            }, 1 );
-        }
-    }).on("input change", function(e) {
-        const xhr = new XMLHttpRequest();
-        const taskId = $(this).parent().parent().attr("id");
-        let taskDeadline = e.target.value
-        if(e.target.value == "") taskDeadline = "0000-00-00";
-        const body = "&taskId=" + taskId + "&taskDeadline=" + taskDeadline
-
-        xhr.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-                const deadlineTextElement = document.getElementById(taskId).children[4].children['deadline_text'];
-                deadlineTextElement.replaceWith(this.responseText);
-                setDeadline();
             }
         }
-        xhr.open("put", "/tasks/updateDeadline", true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send(body);
     });
 }
-
-
 
 async function getTasksCount() {
     let xhr = new XMLHttpRequest();
@@ -460,12 +442,12 @@ async function getTasksCount() {
             
             response.forEach(element => {
                 try {
-                    var work = document.querySelector('.category_name[href="/tasks/work"]');
-                    var importance = document.querySelector('.category_name[href="/tasks/import"]');
-                    var plan = document.querySelector('.category_name[href="/tasks/plan"]');
-                    var today = document.querySelector('.category_name[href="/tasks/today"]');
+                    var work = document.querySelector('.category-name[href="/tasks/work"]');
+                    var importance = document.querySelector('.category-name[href="/tasks/import"]');
+                    var plan = document.querySelector('.category-name[href="/tasks/plan"]');
+                    var today = document.querySelector('.category-name[href="/tasks/today"]');
                     var aTag = document.createElement('a');
-                    aTag.className = "tasks_count";
+                    aTag.className = "tasks-count";
 
                     if(element.count > 0) {
                         switch (element.name) {
@@ -487,7 +469,7 @@ async function getTasksCount() {
                                 break;
                             default:
                                 aTag.innerHTML = element.count;
-                                document.querySelector(`.category_name[href="/tasks/category?id=${element.name}"]`).parentElement.appendChild(aTag);
+                                document.querySelector(`.category-name[href="/tasks/category?id=${element.name}"]`).parentElement.appendChild(aTag);
                                 break;
                             }
                     }

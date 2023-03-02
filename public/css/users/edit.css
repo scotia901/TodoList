@@ -17,15 +17,15 @@ h1 {
     text-decoration: none;
 }
 
-#main_link:link {
+#main-link:link {
     text-decoration: none;
 }
 
-#main_link:visited {
+#main-link:visited {
     text-decoration: none;
 }
 
-#join_text {
+#join-text {
     margin: auto;
     margin-top: 50px;
     margin-bottom: 15px;
@@ -47,7 +47,7 @@ h1 {
     height: 450px;
 }
 
-.input_area {
+.input-area {
     height: 30px;
     margin-top: 5px;
     margin-bottom: 60px;
@@ -70,20 +70,20 @@ input:focus {
     border-color:black;
 }
 
-#submit_btn_area {
+#submit-btn-area {
     align-content: center;
     margin: 100px 0px 10px 0px;
     height: 40px;
 }
 
-#change_btn_area {
+#change-btn-area {
     position: absolute;
     margin: 0px 0px 10px 0px;
     height: 40px;
     bottom: -140px;
 }
 
-#back_btn {
+#back-btn {
     margin: 0px 0px 0px 5px;
     font-size: 18px;
     font-weight: 400;
@@ -96,7 +96,7 @@ input:focus {
     width: 145px;
 }
 
-#change_email_btn {
+#change-email-btn {
     margin: 0px 5px 0px 0px;
     font-size: 18px;
     font-weight: 400;
@@ -109,7 +109,7 @@ input:focus {
     width: 145px;
 }
 
-#change_pswd_btn {
+#change-pswd-btn {
     margin: 0px 5px 0px 0px;
     font-size: 18px;
     font-weight: 400;
@@ -122,7 +122,7 @@ input:focus {
     width: 145px;
 }
 
-#send_code_btn {
+#send-code-btn {
     position: absolute;
     height: 30px;
     float: right;
@@ -136,11 +136,11 @@ input:focus {
     color: rgb(117, 117, 117);
 }
 
-#send_code_btn:hover {
+#send-code-btn:hover {
     background-color: rgb(255, 255, 255);
 }
 
-#auth_btn {
+#auth-btn {
     position: absolute;
     width: 40px;
     height: 30px;
@@ -154,7 +154,7 @@ input:focus {
     color: rgb(117, 117, 117);
 }
 
-#auth_btn:hover {
+#auth-btn:hover {
     background-color: rgb(255, 255, 255);
 }
 
@@ -164,7 +164,7 @@ label {
     font-family: 돋움체;
 }
 
-.error_msg {
+.error-msg {
     margin-top: 3px;
     color: orangered;
     font-size: 14px;
