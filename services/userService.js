@@ -165,7 +165,7 @@ module.exports = {
             socialType: socialType,
             password_hash: hashPassword.hash,
             password_salt: hashPassword.salt,
-        }).then(respone = > {
+        }).then(respone => {
             callback(null, respone);
         })
         db.execute(`INSERT INTO auth_join (
