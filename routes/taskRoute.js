@@ -3,6 +3,7 @@ const TaskController = require('../controllers/TaskController');
 const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
+const taskService = require('../services/taskService');
 const todoDbOptions = {
     host: process.env.MYSQL_HOST,
     port: process.env.MYSQL_PORT,
@@ -21,6 +22,7 @@ const todoDbOptions = {
 // });
 
 router.get('/count', async (req, res, next) => {
+    taskService.getCountTasksByCategory(req, res);
     try {
         // const connection = await mysql.createConnection(todoDbOptions);
         // const [today] = await connection.execute(

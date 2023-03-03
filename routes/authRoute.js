@@ -14,10 +14,12 @@ router.get('/kakao', async (req, res) => {
     userController.loginSnsUser(req, res);
 });
 
-
-
 router.get('/naver', async (req, res) => {
     userController.loginSnsUser(req, res);
+});
+
+router.get('/kakao/delete', async (req, res) => {
+    userController.deleteSnsUser(req, res);
 });
 
 router.get('/naver/delete', async (req, res) => {

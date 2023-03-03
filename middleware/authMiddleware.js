@@ -11,7 +11,7 @@ module.exports = {
                     req.session.regenerate((err) => {
                         if (err) throw err;
                         req.session.user.id = id;
-                        req.session.nickname = nickname;
+                        req.session.user.nickname = nickname;
                         req.session.save((err) => {
                             if (err) throw err;
                         });

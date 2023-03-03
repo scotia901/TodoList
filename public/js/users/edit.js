@@ -339,3 +339,7 @@ async function changeUsername() {
         }
     }
 }
+
+function deleteSnsUser() {
+    
+}

@@ -7,59 +7,10 @@ const fs = require('fs');
 const mysql = require('mysql2/promise');
 const express = require('express');
 const path = require('path');
-const multer = require('multer');
-const mailer = require('./mailer');
-const { query } = require('../db');
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, PROFILE_IMG_PATH);
-    },
-    filename: (req, file, cb) => {
-        const randomFileName = Math.round(Math.random() * 1E15);
-        const ext = path.extname(file.originalname);
-        cb(null, randomFileName + ext)
-    }
-});
-const upload = multer({ storage: storage });
-const idFormat = /^[\w-]{5,20}$/;
-const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-const pswdFormat = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{8,20}$/;
-const usernameFormat = /^[\w|가-힣]{2,10}$/
-const todoDbOptions = {
-    host: process.env.MYSQL_HOST,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_TODO_DATABASE
-}
-const tokensDbOptions = {
-    host: process.env.MYSQL_HOST,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_TOKEN_DATABASE
-}
 const mail = new mailer();
 const router = express.Router();
-
-function hashPassword(pswd) {
-    try {
-        const salt = crypto.randomBytes(128).toString("base64");
-        const iterations = 10000;
-        const keylen = 128;
-        const digest = 'sha512';
-        return new Promise((resolve, rejects) => {
-            crypto.pbkdf2(pswd, salt, iterations, keylen, digest, (err, derivedKey) => {
-                if(err) rejects(err);
-                resolve({
-                    salt: salt,
-                    hash: derivedKey,
-                    iterations: iterations
-                });
-            });
-        });
-    } catch (error) {
-        if(err) throw 'failure encrypt password';
-    }
-}
+const emailUtility = require('../utilities/emailUtiilty');
+const validataionMiddleware = require('../middleware/validataionMiddleware');
 
 router.get('/login', async (req, res) => {
     const kakaoKey = process.env.KAKAO_REST_KEY;
@@ -75,53 +26,8 @@ router.get('/login', async (req, res) => {
         });
 })
 
-router.post('/login', async (req, res, next) => {
-    try {
-        if (!idFormat.test(req.body.user_id) || !pswdFormat.test(req.body.password)) throw new Error("Bad Request");
-        const usersConnection = await mysql.createConnection(todoDbOptions);
-        const [results] = await usersConnection.execute(`SELECT user_id, user_img, username, password_hash, password_salt, password_iter FROM users WHERE user_id = "${req.body.user_id}"`);
-
-        if(results.length > 0) {
-            const keylen = 128;
-            const digest = 'sha512';
-            const pswd = req.body.password;
-            const hash = results[0].password_hash;
-            const salt = results[0].password_salt.toString();
-            const iterations = parseInt(results[0].password_iter.toString());
-            const keepLoginAge = 1000000;
-
-            crypto.pbkdf2(pswd, salt, iterations, keylen, digest, async (err, derivedKey) => {
-                if(err) throw err;
-                if(derivedKey.equals(hash)) {
-                    req.session.regenerate( (err) => {
-                        if(err) throw err;
-                        if(req.body.keepLogin == "true") {
-                            req.session.cookie.maxAge = keepLoginAge;
-                            req.session.cookie.expries = new Date(Date.now() + keepLoginAge);
-                        }
-                        req.session.isLogined = true;
-                        req.session.user_id = results[0].user_id;
-                        req.session.userimg = results[0].user_img;
-                        req.session.username = results[0].username;
-                        if(!req.session.currentCategory) req.session.currentCategory = "오늘 할 일";
-                        req.session.save(async (err) => {
-                            if (err) throw err;
-                            await usersConnection.end();
-                            res.sendStatus(200);
-                        });
-                    });
-                } else {
-                    res.sendStatus(404);
-                }
-            });
-        } else {
-            await usersConnection.end();
-            res.sendStatus(404);
-        }
-    } catch (error) {
-        error.status = 400
-        next(error);
-    }
+router.post('/login', verifyLoginDate, async (req, res, next) => {
+    await UserController.getUser(req, res, next);
 });
 
 router.delete('/logout', async (req, res) => {
@@ -171,36 +77,7 @@ router.get('/find_pswd', (req, res) => {
 });
 
 router.post('/find_pswd/send', async (req, res) => {
-    try {
-        const usersConnection = await mysql.createConnection(todoDbOptions);
-        let userquery = `SELECT user_id, email FROM users WHERE user_id = "${req.body.id}" AND email = "${req.body.email}"`;
-        const [user] = await usersConnection.execute(userquery);
-        if(user.length == 1) {
-            const code = crypto.randomBytes(64).toString("base64");
-            let expireDate = new Date();
-            expireDate.setDate(expireDate.getDate() + 1);
-
-            const tokensConnection = await mysql.createConnection(tokensDbOptions);
-            let query = 'INSERT INTO reset_password (reset_code, user_id, expire_date) values(?, ?, ?) ON DUPLICATE KEY UPDATE reset_code=?';
-            await tokensConnection.execute(query, [code, user[0].user_id, expireDate, code]);
-
-            mail.type = "resetPswd";
-            mail.email = user[0].email;
-            mail.user_id = user[0].user_id;
-            mail.code = code;
-            mail.makeForm();
-            await mail.send();
-            await usersConnection.end();
-            await tokensConnection.end();
-            res.status(200).send(user[0].email);
-        } else {
-            await usersConnection.end();
-            await tokensConnection.end();
-            res.sendStatus(200).send('NotFoundUser');
-        }    
-    } catch (error) {
-        res.sendStatus(500);
-    }    
+    UserController.resetUserPassword(req, res);
 });
 
 router.get('/find_pswd/result', (req, res) => {
@@ -212,7 +89,7 @@ router.get('/find_pswd/result', (req, res) => {
     });
 });
 
-router.post('/find_pswd/reset', async (req, res) => {
+router.post('/find_pswd/reset', validataionMiddleware.password ,async (req, res) => {
     try {
         if(pswdFormat.test(req.body.password)) {
             const tokensConnection = await mysql.createConnection(tokensDbOptions);

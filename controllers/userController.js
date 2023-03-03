@@ -14,6 +14,22 @@ module.exports = {
         });
     },
 
+    getUser: async (req, res) => {
+        const userId = req.body.userId;
+        const password = req.body.password;
+        await userService.getUserbyUsernameAndPassword(userId, password, (error, user) => {
+            if(error) {
+                error.status = 400
+                next(error);
+            } else {
+                req.session.user.id = user.id;
+                req.session.user.nickname = user.nickname;
+                req.session.user.image = user.image;
+                res.status(200).send('Login success');
+            }
+        });
+    },
+
     uploadUserImage: async (req, res) => {
         
         const filename = req.file.filename;

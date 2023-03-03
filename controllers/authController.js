@@ -37,10 +37,18 @@ module.exports = {
     },
 
     createUserByKakaoUser: (req, res) => {
-        const userData = user;
-        const userName = user.properties.nickname;
+        const userData =  {
+            userName: null,
+            email: user.properties.email,
+            nickname: user.properties.nickname,
+            snsType: 'kakao',
+            hash: null,
+            salt: null
+        }
 
-        userService.createUser();
+        userService.createUser(userData, (err, user) => {
+            
+        });
     },
     
     getTokenFromNaver: async (req, res) => {
@@ -68,8 +76,6 @@ module.exports = {
                 }
             }
         });
-
-
     },
 
     getNaverUserByToken: async (token, req, res) => {

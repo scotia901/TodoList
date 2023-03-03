@@ -24,8 +24,8 @@ module.exports = {
 
         if(token.error) {
             throw token.error
-        } else {
             return token
+        } else {
         }
     },
 
@@ -46,6 +46,23 @@ module.exports = {
                 snsType: 'kakao'
             }
             return user
+        }
+    },
+
+    deleteKakaoUserByToken: async (token, callback) => {
+        const authorization = token.token_type + " " + token.access_token;
+        const result = await fetch("https://kapi.kakao.com/v1/user/unlink", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': authorization
+            }
+        }).then((response) => response.json());
+        if(result.error) {
+            throw result.error
+        } else {
+            const SnsId = result;
+            return SnsId
         }
     },
 

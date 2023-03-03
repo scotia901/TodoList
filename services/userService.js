@@ -1,10 +1,9 @@
 require('dotenv').config();
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const db = require('../db');
 const { User } = require('../models/userModel');
-const crypto = require('node:crypto');
 const authService = require('../services/authService');
-const Sequelize = require('sequelize/lib/sequelize');
+const cryptoUtility = require('../utilities/cryptoUtility');
+const { reject } = require('lodash');
+const { resolve } = require('node:path');
 
 module.exports = {
 
@@ -16,6 +15,54 @@ module.exports = {
                 callback(null, result);
             }
         });
+    },
+
+    resetUserPassword: async (username, email) => {
+        const user = await User.findOne({
+            where: {
+                username: username,
+                email: email
+            }
+        })
+        if(user.length == 1) {
+            const code = cryptoUtility.createRandomCode();
+            let expireDate = new Date();
+            expireDate.setDate(expireDate.getDate() + 1);
+
+            // storing auth token which is better db and memeory  
+            const tokensConnection = await mysql.createConnection(tokensDbOptions);
+            let query = 'INSERT INTO reset_password (reset_code, user_id, expire_date) values(?, ?, ?) ON DUPLICATE KEY UPDATE reset_code=?';
+            await tokensConnection.execute(query, [code, user[0].user_id, expireDate, code]);
+            
+            emailUtility.sendEmailToRestPassword(email, code);
+
+            return new Promise(resolve(user.email));
+        } else {
+            return new Promise(reject('Not found user'));
+        }
+    },
+
+    getUserbyUsernameAndPassword: async (userId, password, callback) => {
+        const user = await User.findOne({
+            attributes: ['id', 'nickname', 'image', 'salt'],
+            where: {
+                username: userId
+            }
+        });
+
+        const unhashPswd = await cryptoUtility.unhashPassword(password, user.salt);
+
+        if(unhashPswd = password) {
+            const userDate = {
+                id: user.id,
+                nickname: user.nickname,
+                image: user.image
+            }
+            callback(null, userDate);
+        } else {
+            const error = new Error('Error not fount user');
+            callback(error, null);
+        }
     },
 
     uploadUserImage: async (userId, filename, callback) => {
@@ -34,9 +81,11 @@ module.exports = {
                     }
                 });
             }
-        }).then(() => {
-
-        });
+        }).then(response => {
+            callback(null, response);
+        }).catch(error => {
+            callback(error, null);
+        })
 
         
 
@@ -108,17 +157,17 @@ module.exports = {
     },
 
     createUser: async (userData, callback) => {
-        const userService = require('../services/userService')
-        userService.hashPassword(userData.password, (err, password) => {
-            if(err) {
-                console.log(err);
-                callback(err, null);
-            } else {
-                console.log(password);
-                callback(err, password);
-            }
-        });
+        const hashPassword = await cryptoUtility.hashPassword(userData.password);
 
+        await User.create({
+            username: userData.username,
+            email: userData.email,
+            socialType: socialType,
+            password_hash: hashPassword.hash,
+            password_salt: hashPassword.salt,
+        }).then(respone = > {
+            callback(null, respone);
+        })
         db.execute(`INSERT INTO auth_join (
             user_id,
             name,
@@ -161,6 +210,7 @@ module.exports = {
     
     hashPassword: async (password, callback) => {
         try {
+            cryptoUtility.hashPassword()
             const salt = crypto.randomBytes(128).toString("base64");
             const iterations = 10000;
             const keylen = 128;
@@ -194,6 +244,24 @@ module.exports = {
         }
     },
 
+    deleteSnsUser: async (req, res, callback) => {
+        const token = await authService.getTokenFromKakao(code, state);
+        const snsId = await authService.deleteKakaoUserByToken(token);
+        if(snsId) {
+            User.destroy({
+                where: {
+                    snsId: snsId,
+                    snsType: 'kakao'
+                }
+            }).then(() => {
+                callback(null);
+            }).catch(error => {
+                console.error(error);
+                callback(error)
+            })
+        }
+    },
+
     isUserExistInDb: async (user) => {
         const snsId = user.snsId;
         try {
@@ -215,8 +283,6 @@ module.exports = {
 
     createSnsUser: async (userData) => {
         try {
-
-            console.log(userData);
             const nickname = userData.nickname ? userData.nickname : "익명" ;
             const snsId = userData.snsId;
             const email = userData.email;
