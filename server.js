@@ -1,10 +1,12 @@
+const authModel = require('./models/authModel');
+
 async function main () {
     require('dotenv').config();
     const path = require('path');
     const express = require('express');
     const app = express();
     const errorMiddleware = require('./middleware/errorMiddleware');
-    const authMiddleware = require('./middleware/authMiddleware');
+    const AuthMiddleware = require('./middleware/authMiddleware');
     const mysql = require('mysql2/promise');
     const session = require('express-session');
     const MySQLStore = require('express-mysql-session')(session);
@@ -47,49 +49,35 @@ async function main () {
     app.use(cookieParser());
     app.use(express.json());
 
+    app.get('/', async (req, res, next) => {
+        if(req.session.user) {
+            res.render('tasks', {
+                "pageTitle": process.env.PAGE_TITLE,
+                "nickname": req.session.user.nickname,
+                "profileImg": req.session.user.profileImg
+            });
+        } else {
+            res.redirect('/users/login');
+        }
+    });
 
-
-    
-
-    // const userDb = require('./models/userModel');
-    
-    // app.use(authMiddleware.refreshSessionData);
-    // app.use(authMiddleware.validateLogin);
-    
-    
+    app.use(AuthMiddleware.isLogined);
+    app.use(AuthMiddleware.refreshSessionData);
     app.use('/users', userRoutes);
     app.use('/categories', categoryRoutes);
     app.use('/tasks', taskRoutes);
     app.use('/auth', authRoutes);
-    
-    app.get('/recreate', async (req, res) => {
-        await userDb.initTables(true);
-        res.send('ok');
-    });
-    app.get('/', async (req, res, next) => {
-        try {
-            if(req.session.user) {
-                res.redirect('/tasks');
-            } else {
-                res.redirect('/users/login');
-            }
-        } catch (err) {
-            throw err;
-        }
-    });
-
     app.listen(process.env.SERVER_PORT, () => {
         let appOpenTime = new Date();
         console.log(`App open on ${appOpenTime.toLocaleString()} and listening on Port:${process.env.SERVER_PORT}`);
     });
-
-    // app.use(errorMiddleware.logErrors);
-    // app.use(errorMiddleware.clientErrorHandler);
-    // app.use(errorMiddleware.errorHandler);
+    
+    app.use(errorMiddleware.logErrors);
+    app.use(errorMiddleware.clientErrorHandler);
+    app.use(errorMiddleware.errorHandler);
     app.use((req, res, next) => {
         res.status(404).render('error', { "pageTitle": process.env.PAGE_TITLE, "status": 404, "errMsg": "Not Found" });
-    })
+    });
 }
 
 main();
-

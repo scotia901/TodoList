@@ -1,42 +1,38 @@
 const express = require('express');
-const router = express.Router();
+const Router = express.Router();
 const CategoryController = require('../controllers/categoryController');
+const ValidataionMiddleware = require('../middleware/validataionMiddleware');
 
-
-function validateSession (req, res, next) {
-    if(req.session.category && req.session.user) {
-        next();
-    } else {
-        req.session.category = {};
-        req.session.category.id = null;
-        req.session.category.name = '작업';
-        req.session.save();
-        next();
-    }
-}
-
-router.get('/', (req, res) => {
-    CategoryController.getCategoriesByUser(req, res);
+Router.get('/', (req, res, next) => {
+    CategoryController.getCategoriesByUser(req, res, next);
 });
 
-router.get('/current', validateSession, (req, res) => {
-    CategoryController.getCurrentCategoryFromSession(req, res);
+Router.get('/current', ValidataionMiddleware.verifyCategorySession, (req, res, next) => {
+    CategoryController.getCurrentCategoryFromSession(req, res, next);
 });
 
-router.put('/current', (req, res) => {
-    CategoryController.updateCurrentCategoryToSession(req, res);
+Router.put('/current', (req, res, next) => {
+    CategoryController.updateCurrentCategoryToSession(req, res, next);
 });
 
-router.post('/category', (req, res) => {
-    CategoryController.createCategoryByUser(req, res);
+Router.post('/category', (req, res, next) => {
+    CategoryController.createCategoryByUser(req, res, next);
 });
 
-router.put('/category', (req, res) => {
-    CategoryController.updateCategoryNameByUser(req, res);
+Router.put('/category', async (req, res, next) => {
+    await CategoryController.updateCategoryNameByUser(req, res, next);
 });
 
-router.delete('/category', (req, res) => {
-    CategoryController.deleteCategoryByUser(req, res);
+Router.delete('/category', (req, res, next) => {
+    CategoryController.deleteCategoryByUser(req, res, next);
 });
 
-module.exports = router;
+Router.put('/category/sort', (req, res, next) => {
+    CategoryController.updateCategoryOrderById(req, res, next);
+});
+
+Router.put('/category/theme', (req, res, next) => {
+    CategoryController.updateCategoryTheme(req, res, next);
+});
+
+module.exports = Router;

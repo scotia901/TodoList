@@ -1,15 +1,19 @@
 window.onload = async (event) => {
     event.preventDefault();
-    if(!document.getElementsByClassName('has-image-file')[0]) {
-        const nickname = document.getElementById('nickname').innerText;
-        await makeDefaultUserImg(nickname);
-    }
+    const uploadImg = document.getElementById('upload-img');
+    const uploadImgBtn = document.getElementById('upload-profile-image-btn');
+    const deleteImgBtn = document.getElementById('delete-profile-image-btn');
+    
+    if(uploadImg) uploadImg.addEventListener('change', uploadFile);
+    if(uploadImgBtn) uploadImgBtn.addEventListener('click', uploadProfileImg);
+    if(deleteImgBtn) deleteImgBtn.addEventListener('click', deleteProfileImg);
+
+    if(!document.getElementsByClassName('profile-image has-image-file')[0]) await createDefaultProfileImg();
 }
 
-async function makeDefaultUserImg(nickname) {
-    const imgArea = document.getElementById('user-img-area');
-    imgArea.classList.add('has-image-file');
-    const img = document.createElement('img');
+async function createDefaultProfileImg() {
+    const nickname = document.getElementById('nickname').innerText;
+    const img = document.getElementsByClassName('profile-image')[0];
     const canvas = document.createElement('canvas');
     const context =  canvas.getContext('2d');
     let seed = new Number();
@@ -17,6 +21,7 @@ async function makeDefaultUserImg(nickname) {
         seed = seed + Math.imul(23434513 ^ char.charCodeAt(), 56223435);
     }
     const randomColor = '#' + (0x1000000 | (Math.sin(seed)*0xFFFFFF)).toString(16).substring(1,7);
+    
     canvas.width = canvas.height = 50;
     context.fillStyle = randomColor;
     context.beginPath();
@@ -27,33 +32,36 @@ async function makeDefaultUserImg(nickname) {
         0, Math.PI * 2
     );
     context.fill();
-    
     context.font = '400' + ' ' + (canvas.height/2) + 'px Arial';
     context.fillStyle = '#ffffff';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText(nickname[0].toUpperCase(), canvas.width/2, canvas.height/2);
+    context.fillText(nickname[0].toUpperCase(), canvas.width/2, canvas.height/2 + 2);
 
-    
+    img.classList.remove('has-image-file');
     img.src = canvas.toDataURL();
-    imgArea.prepend(img);
 }
 
-function uploadImg() {
+function uploadProfileImg() {
     document.getElementById('upload-img').click();
 }
 
-async function toDefaultImg() {
-    const xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            location.reload();
-        } else if (this.readyState == 4 && this.status == 400) {
-            alert(ERROR-DEL-IMG-MSG);
+async function deleteProfileImg() {
+    const comfrim = confirm('정말로 프로필 이미지를 삭제 하시겠습니까?');
+
+    if(comfrim == true) {
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = async function() {
+            if (this.readyState == 4 && this.status == 200) {
+                await createDefaultProfileImg();
+            } else if (this.readyState == 4 && this.status == 400) {
+                alert(ERROR-DEL-IMG-MSG);
+            }
         }
+        xhr.open('delete', '/users/profile/img', true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send();
     }
-    xhr.open('delete', '/users/profile/img', true);
-    xhr.send();
 }
 
 async function uploadFile() {
@@ -85,12 +93,15 @@ async function uploadFile() {
             const xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    location.reload();
-                } else if (this.readyState == 4 && this.status == 400) {
-                    alert(ERROR-UPLOAD-IMG-MSG);
+                    const profileImg = document.getElementsByClassName('profile-image')[0];
+                    profileImg.classList.add('has-image-file');
+                    profileImg.src = '/data/uploads/img/profile/' + this.responseText;
+                } else if (this.readyState == 4 && this.status == 500) {
+                    alert(ERROR_UPLOAD_IMG_MSG);
                 }
             }
             xhr.open('post', '/users/profile/img', true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
             xhr.send(formData);
         });
     }

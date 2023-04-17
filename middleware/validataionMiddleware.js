@@ -1,56 +1,199 @@
-const { response } = require('express');
-const { User } = require('../models/userModel');
-
-module.exports = {
-    preventBruteforce: (req, res) => {
-        if (req.session.tryLogin > 5) {
-            res.status(200).send('You try to login more then 5 times');
-        } else if(req.session.isLogined == true){
-            next();
-        } else {
-            req.session.tryLogin += 1;
-        }
-    }
-}
-
+const { User } = require('../models/todoModel');
 const idFormat = /^[\w-]{5,20}$/;
 const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 const pswdFormat = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{8,20}$/;
-const usernameFormat = /^[\w|가-힣]{2,10}$/
+const usernameFormat = /^[\w|가-힣]{2,10}$/;
+const authCodeFormat = /\b\d{5}\b/;
 
-async function verifyJoinForm(err, req, res, next) {
-    if (!idFormat.test(req.body.user_id) || !emailFormat.test(req.body.email) || !pswdFormat.test(req.body.password)) {
-        res.status(400).send('유효하지 않는 데이터');
-    } else {
-        User.findAndCountAll({
-            where: {
-                email: email
+module.exports = {
+    preventBruteforce: (req, res, next) => {
+        if (req.session.tryLogin > 5) {
+            res.status(200).send('Login try 5');
+        } else if (req.session.isLogined == true) {
+            next();
+        } else {
+            req.session.tryLogin += 1;
+            next();
+        }
+    },
+
+    verifyPswdFormat: (req, res, next) => {
+        try {
+            if (pswdFormat.test(req.body.password)) {
+                next();
+            } else {
+                throw 'Bad request';
             }
-        }).then(response => {
-            if(response.count > 3) {
-                new Error ('This email has limited join because avaliable join 3user per email')
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    verifyUpdatePswd: (req, res, next) => {
+        try {
+            const newPswd = req.body.newPswd;
+            const currentPswd = req.body.currentPswd;
+            if (newPswd != currentPswd) {
+                if (pswdFormat.test(req.body.newPswd) && pswdFormat.test(req.body.currentPswd)) {
+                    next();
+                } else {
+                    throw 'Bad request';
+                }
+            } else {
+                throw 'Same password';
             }
-        }).then(response => {
-            if(response.user.id == req.body.userId) {
-                new Error ('This ID already has joined this site.')
+        } catch (error) {
+            next(error);   
+        }
+    },
+
+    verifyJoin: async (req, res, next) => {
+        try {
+            if (!idFormat.test(req.body.username) || !emailFormat.test(req.body.email) || !pswdFormat.test(req.body.password)) {
+                throw 'Bad request';
+            } else {
+                const userData = req.body;
+                const result = await isUserJoined(userData);
+                
+                if(result) {
+                    res.status(200).send(message);
+                } else {
+                    next();
+                }
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    verifyLogin: async (req, res, next) => {
+        try {
+            if (!idFormat.test(req.body.username) || !pswdFormat.test(req.body.password)) {
+                throw 'Bad request';
             } else {
                 next();
             }
-        }).catch(error => {
-            console.error(error);
-            throw error;
-        });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    verifyFindPswd: async (req, res, next) => {
+        try {
+            if (!idFormat.test(req.params.username) || !emailFormat.test(req.params.email)) {
+                throw 'Bad request';
+            } else {
+                const userData = req.params;
+                const result = await isUserJoined(userData);
+    
+                if (result == 'joinedUser') {
+                    next();
+                } else {
+                    res.status(200).send('notJoinedUser');
+                }
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    verifyEmail: async (req, res, next) => {
+        const currentEmail = req.body.currentEmail;
+        const userId = req.session.user.id;
+
+        if (emailFormat.test(currentEmail)) {
+            checkEmailMatch(userId, currentEmail, (error) => {
+                if (error) {
+                    next(error);
+                } else {
+                    next();
+                }
+            });
+        } else {
+            const error = new Error('Bad Request');
+            error.status = 401;
+            next(error);
+        }
+    },
+
+    verifyEmailFormatAndAuthCode: (req, res, next) => {
+        const authCode = req.query.code;
+        const email = req.query.email;
+
+        if (authCodeFormat.test(authCode) && emailFormat.test(email)) {
+            next();
+        } else {
+            const error = new Error('Bad request');
+            error.status = 401;
+            next(error);
+        }
+    },
+
+    verifyCategorySession: (req, res, next) => {
+        if (req.session.category && req.session.user) {
+            next();
+        } else {
+            req.session.category = {};
+            req.session.category.id = null;
+            req.session.category.name = '작업';
+            req.session.save();
+            next();
+        }
+    },
+
+    verifyCategoryData: (req, res, next) => {
+        const categoryName = req.body.categoryName;
+        const categoryId = req.body.categoryId;
+
+        if (typeof categoryName != 'string' && typeof categoryId != 'number' || categoryId != null) {
+            next(new Error('Bad Request'));
+        }
+        if (categoryId == null) {
+            if (categoryName == '작업' && categoryName == '중요' && categoryName == '오늘 할 일' && categoryName == '계획된 일정') {
+                next();
+            }
+        }
+        // checkCategoryData function store in AuthService.
     }
 }
 
-if(usernameFormat.test(req.body.username)) {
-    next();
-} else {
-    new Error('Error: Invalied username');
+async function checkEmailMatch(userId, email, callback) {
+    await User.count({
+        where: {
+            id: userId,
+            email: email
+        }
+    }).then(response => {
+        if (response == 1) {
+            callback(null);
+        } else {
+            const error = new Error('Not Found');
+            error.status = 404;
+            callback(error);
+        }
+    }).catch(error => {
+        error.status = 500;
+        callback(error);
+    })
 }
 
-if(emailFormat.test(req.body.email)) {
-    next();
-} else {
-    new Error('Error: Invalied email');
+async function isUserJoined(userData) {
+    const response = await User.findAndCountAll({
+        attributes: ['name'],
+        where: {
+            email: userData.email,
+            snsId: null
+        }
+    });
+
+    if (response.count > 3) {
+        return 'limitJoinedEmail';
+    } else {
+        for (const user of response.rows) {
+            if (user.name == userData.username) {
+                return 'joinedUser';
+            }
+        }
+        return null;
+    }
 }

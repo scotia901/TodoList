@@ -1,35 +1,31 @@
-doctype html
-html(lang="ko")
-    head
-        meta(charset="UTF-8")
-        meta(http-equiv="X-UA-Compatible", content="IE=edge")
-        meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        script(type="text/javascript" src="/js/users/edit.js")
-        link(rel="stylesheet" href="/css/users/edit.css")
-        title=pageTitle + " - 회원 정보"
-    body
-        div(id="content")  
-            div(id="top")
-                a(id="main_link" href="/")
-                    h1 To Do
-            h2(id="join_text") 비밀번호 변경
-            div(id="main")
-                form(method="post" onsubmit="event.preventDefault(); changePswd();")
-                    div(class="row")
-                        div(class="join_label_area")
-                            label(for="current_pswd") 기존 비밀번호
-                        div(class="input_area" id="current_pswd_input_area")
-                            input(type="password" name="pswd" id="current_pswd")
-                    div(class="row")
-                        div(class="join_label_area")
-                            label(for="new_pswd1") 비밀번호
-                        div(class="input_area" id="new_pswd1_input_area")
-                            input(type="password" name="new_pswd1" id="new_pswd1")
-                    div(class="row")
-                        div(class="join_label_area")
-                            label(for="new_pswd2") 비밀번호 재확인
-                        div(class="input_area" id="new_pswd2_input_area")
-                            input(type="password" name="new_pswd2" id="new_pswd2")
-                    div(id="submit_btn_area")
-                        input(type="submit" id="change_pswd_btn" value="변경하기")
-                        input(type="button" id="back_btn" value="돌아가기")
+extends layout.pug
+
+block append scripts
+    script(type="text/javascript" src="/js/users/edit.js")
+
+block stylesheet
+    link(rel="stylesheet" href="/css/users/style.css")
+
+block title
+    title=pageTitle + " - 비밀번호 변경"
+
+block append content
+    div(id="content")
+        h2(id="content_title") 비밀번호 변경
+        div(id="main")
+            div(class="label_wrap")
+                label(for="current_pswd") 기존 비밀번호
+            div(class="input_wrap" id="current_pswd_input_wrap")
+                input(type="password" name="pswd" id="current_pswd")
+            div(class="label_wrap")
+                label(for="new_pswd1") 비밀번호
+            div(class="input_wrap" id="new_pswd1_input_wrap")
+                input(type="password" name="new_pswd1" id="new_pswd1")
+            div(class="label_wrap")
+                label(for="new_pswd2") 비밀번호 재확인
+            div(class="input_wrap" id="new_pswd2_input_wrap")
+                input(type="password" name="new_pswd2" id="new_pswd2")
+            div(class="submit_btn_wrap")
+                input(class="submit_btn" type="submit" id="submit_pswd_btn" value="변경하기")
+            div(class="back_page_btn_wrap")
+                input(class="back_page_btn" type="button" id="back_btn" value="돌아가기")

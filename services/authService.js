@@ -1,55 +1,61 @@
 require('dotenv').config();
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const cryptoUtility = require('../utilities/cryptoUtility');
+const emailUtility = require('../utilities/emailUtility');
+const AuthModel = require('../models/authModel');
+const { User } = require('../models/todoModel');
 const naverId = process.env.NAVER_CLIENT_ID;
 const kakaoKey = process.env.KAKAO_REST_KEY;
 const naverSecret = process.env.NAVER_CLIENT_SECRET;
-const callbackUri = encodeURI(process.env.AUTH_CALLBACK_URI);
 
 module.exports = {
-    getTokenFromKakao: async (code, state) => {
+    getTokenFromKakao: async (code, state, callbackUri) => {
         const params = new URLSearchParams();
         const api_url = 'https://kauth.kakao.com/oauth/token';
         params.append('grant_type', "authorization_code");
         params.append('client_id', kakaoKey);
         params.append('code', code);
-        params.append('redirect_uri', callbackUri + "kakao");
+        params.append('state', state);
+        params.append('redirect_uri', callbackUri);
 
         const token = await fetch(api_url, {
             method: "POST",
             headers:{ "Content-type": "application/x-www-form-urlencoded"},
             body: params
-        }).then((token) => token.json());
-
-        console.log(token)
+        });
 
         if(token.error) {
             throw token.error
-            return token
         } else {
+            return token.json();
         }
     },
 
-    getUserFromKakaoToken: async (token, callback) => {
+    getUserFromKakaoToken: async (token) => {
         const authorization = token.token_type + " " + token.access_token;
+
         const result = await fetch("https://kapi.kakao.com/v2/user/me", {
             method: "GET",
             headers: { 'Authorization': authorization }
-        }).then((response) => response.json());
+        }).then(async response => {
+            return await response.json();
+        });
 
-        if(result.error) {
-            throw result.error
+        if(result.msg && result.code) {
+            throw result;
         } else {
             const user = {
                 nickname: result.properties.nickname,
                 email: result.kakao_account.email,
                 snsId: result.id,
                 snsType: 'kakao'
-            }
-            return user
+            };
+            return user;
         }
+
     },
 
-    deleteKakaoUserByToken: async (token, callback) => {
+    deleteKakaoUserByToken: async (token) => {
         const authorization = token.token_type + " " + token.access_token;
         const result = await fetch("https://kapi.kakao.com/v1/user/unlink", {
             method: "POST",
@@ -61,21 +67,19 @@ module.exports = {
         if(result.error) {
             throw result.error
         } else {
-            const SnsId = result;
-            return SnsId
+            return result;
         }
     },
 
-    getTokenFromNaver: async (code, state) => {
+    getTokenFromNaver: async (code, state, callbackUrl) => {
         const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=authorization_code&client_id='
-                        + naverId + '&client_secret=' + naverSecret + '&redirect_uri='
-                        + callbackUri + "naver"+ '&code=' + code + '&state=' + state;
-        const token = await fetch(api_url).then((response) => response.json());
-        
-        if(token.error) {
-            throw token.error
+                        + naverId + '&client_secret=' + naverSecret + '&redirect_uri=' + callbackUrl + '&code=' + code + '&state=' + state;
+        const result = await fetch(api_url).then((response) => response.json());
+
+        if(result.error) {
+            return result.error;
         } else {
-            return token
+            return result;
         }
     },
 
@@ -98,33 +102,34 @@ module.exports = {
                 snsId: result.response.id,
                 snsType: 'naver'
             };
-            return user
+            return user;
         } else {
-            const err = {
+            const error = {
                 code: result.resultcode,
                 message: result.message
             }
-            throw err;
+            throw error;
         }
     },
 
-    deleteNaverUserByToken: async (token, callback) => {
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-        const access_token = 'AAAAOvRmzUUOaa57fuPcaEblFNtTB4CGksRTG5TjGjx1Kfehf4s54B0PcfMM2RCgSBNZdMsZqkWZ98NngPbvwcIL2gU';
-        const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=delete&client_id=' + naverId + '&client_secret=' + naverSecret + '&access_token=' + access_token;
-        
-        const response = await fetch(api_url).then((response) => response.json());
-        res.send(response);
+    deleteNaverUserByToken: async (token) => {
+        const access_token = token.access_token;
+        const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=delete&service_provider=NAVER&client_id=' + naverId + '&client_secret=' + naverSecret + '&access_token=' + access_token;
+        const result = await fetch(api_url);
+
+        if(result.error) {
+            throw result.error;
+        } else {
+            return result.json();
+        }
     },
 
-    refreshToken: async (req, res) => {
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-        const state = 'random_state';
-        const api_url = 'https://nid.naver.com/oauth2.0/authorize?auth_type=reauthenticate&client_id=' + naverId + '&redirect_uri='
-        + callbackUri + "naver/re" + '&response_type=code&state=' + state;
+    refreshNaverToken: async (refreshToken) => {
+        const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=refresh_token&client_id=' + naverId + '&client_secret='
+        + naverSecret + '&refresh_token=' + refreshToken;
         
         const response = await fetch(api_url).then((response) => response);
-        res.send(response);
+        return response;
     },
 
     saveUserToSession: async (req, userId, callback) => {
@@ -141,5 +146,112 @@ module.exports = {
                 });
             }
         });
+    },
+
+    createJoinAuth: async (userData) => {
+        const hashPassword = await cryptoUtility.generateHashAndSalt(userData.password);
+        const token = await cryptoUtility.createRandomHash(128, 'base64');
+        const expireDate = new Date();
+        expireDate.setMinutes(new Date().getMinutes() + 30);
+
+        return new Promise(async (resolve, reject) => {
+            await AuthModel.storeJoinData({
+                username: userData.username,
+                nickname: userData.nickname,
+                passwordHash: hashPassword.hash,
+                passwordSalt: hashPassword.salt,
+                email: userData.email,
+                token: token,
+                expire: expireDate
+            }, (error) => {
+                if(error) {
+                    reject(error);
+                } else {
+                    resolve(token);
+                }
+            });
+        })
+
+    },
+
+    createResetPasswordAuth: async (username) => {
+        const token = await cryptoUtility.createRandomHash(128, 'base64');
+        const expireDate = new Date();
+        expireDate.setMinutes(new Date().getMinutes() + 30);
+
+        return new Promise((resolve, reject) => {
+            AuthModel.storeResetPasswordData({
+                username: username,
+                token: token,
+                expire: expireDate
+            }, (error) => {
+                if(error) {
+                    reject(error);
+                } else {
+                    resolve(token);
+                }
+            });
+        });
+    },
+
+    createUpdateEmailAuth: async (email) => {
+        const code = await cryptoUtility.createRandomDigit(5);
+        const expireDate = new Date();
+        expireDate.setMinutes(new Date().getMinutes() + 30);
+        
+        await AuthModel.storeUpdateEmailData({
+            email: email,
+            code: code,
+            expire: expireDate
+            });
+        return code;
+    },
+
+    getResetPswdUserByToken: async (token) => {
+        const user = await AuthModel.getResetPswdUserByToken(token);
+        return user;
+    },
+    
+    sendResetPasswordEmail: async (username, email, token) => {
+        await emailUtility.sendResetPasswordMail(username, email, token);
+    },
+
+    sendJoinUserEmail: async (username, email, token) => {
+        await emailUtility.sendJoinUserEmail(username, email, token);
+    },
+
+    authResetPassword: async (token) => {
+        const hasToken =  await AuthModel.checkHasToken(token);
+        return hasToken;
+    },
+
+    getJoinUserByToken: async (token) => {
+        const user = await AuthModel.getJoinUserByToken(token);
+        if(user) { return user; }
+        else { return null; }
+    },
+
+    sendAuthCode: async (email, code) => {
+        await emailUtility.sendUpdateUserMail(email, code);
+    },
+
+    authUpdateEmail: async (email, code) => {
+        const isAuth = await AuthModel.checkEmailAndCode(email, code);
+        return isAuth;
+    },
+
+    verifyPswdByUserId: async (userId, password) => {
+        const dbPassword = await User.findOne({
+                    attributes: ['passwordHash', 'passwordSalt'],
+                    where: { id: userId }
+                });
+        const dbPasswordHash = dbPassword.passwordHash;
+        const reqPasswordHash = await cryptoUtility.createHashByPasswordAndSalt(password, dbPassword.passwordSalt);
+
+        if(reqPasswordHash.toString('hex') == dbPasswordHash.toString('hex')) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

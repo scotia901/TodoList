@@ -4,12 +4,12 @@ html(lang="ko")
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        link(rel="stylesheet" href="/css/error.css")
-        title=pageTitle + " - Error"
+        block scripts
+            script(type="text/javascript" src="/js/users/error.js")
+        block stylesheet
+        block title
     body
         div(id="top")
             a(id="main_link" href="/")
                 h1 To Do
-        div(id="body")
-            p=status + " " + errMsg
-            button(onclick="location.href='/';") 확인
+        block content

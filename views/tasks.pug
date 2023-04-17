@@ -7,20 +7,24 @@ html(lang="ko")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css")
         link(rel="stylesheet" href="/css/tasks/styles.css")
         script(type="text/javascript" src="/js/tasks/app.js")
+        script(type="text/javascript" src="/js/tasks/task.js")
         script(type="text/javascript" src="/js/users/image.js")
-        script(type="text/javascript" src="/taskUtility.js")
         link(rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css")
         script(src="https://code.jquery.com/jquery-1.12.4.js")
         script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.js")
         title=pageTitle + " - " + currentPage
     body
-        div(id="sidebar")
+        div(id="sidebar" class="sidebar")
+            div(class="sidebar-btn")
+                span(class="fa fa-bars sidebar-btn-icon")
             div(id="user")
                 div(id="user-img-area" onclick="viewUserInfo()")
-                        if userimg
-                            img(name="user-img" id="user-img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
+                        if profileImg
+                            img(class="profile-image has-image-file" src="/data/uploads/img/profile/" + profileImg)
+                        else
+                            img(class="profile-image")
                 div(id="user-info")
-                    a(id="nickname")=nickname
+                    span(id="nickname")=nickname
                     if nickname = true
                         div
                             button(id="user-info-btn" name="user-info-btn" onclick="viewUserInfo()") 내정보
@@ -30,16 +34,8 @@ html(lang="ko")
                     input(type="text" id="search-text" placeholder="Search")
                     button(type="submit" id="search-btn")
                         i(id="search-icon" class="fa fa-search")
-            ul(class="categories-list" id="common-categories")
-                li(class="category")
-                    span(class="category-name today")="오늘 할 일"
-                li(class="category")
-                    span(class="category-name importance")="중요"
-                li(class="category")
-                    span(class="category-name planed")="계획된 일정"
-                li(class="category")
-                    span(class="category-name work")="작업"
-            div(id="division-line")
+            ul(class="categories-list" id="default-categories")
+            div(id="split-line")
             ul(class="categories-list" id="personal-categories")
             div(id="create-category")
                 div(style="position: absolute; float: left; height: 54px;")
@@ -47,12 +43,68 @@ html(lang="ko")
                     label(for="create-category-button")
                 div(style="height:100%; margin-left: 45px")
                     input(type="text" name="create-category-name" id="create-category-name" placeholder="새 목록" autocomplete="off")
+        div(id="content-blocker")
         div(id="content")
             div(id="top")
-                span(class="category-title")
+                div(class="sidebar-btn")
+                    span(class="fa fa-bars sidebar-btn-icon")
+                div(class="category-title")
                     span(class="category-title-text")
-                button(class="delete-category-button")
-                    span(class="fa fa-trash button-icon")
+                div(class="category-property-btn")
+                    span(class="fa fa-ellipsis-h")
+                    ul(class="category dropdown-menu")
+                        button(class="update-category-name-button")
+                            span(class="fa fa-i-cursor button-icon")
+                            span(class="button-description") 카테고리 이름 변경
+                        li(class="tasks-sort-container")
+                            button(class="update-tasks-sort-button")
+                                span(class="fa fa-list-ol button-icon")
+                                span(class="button-description") 정렬 기준
+                            ul(class="tasks-sort dropdown-menu")
+                                button(class="tasks-sort-button sort-importance")
+                                    span(class="fa fa-star-o button-icon")
+                                    span(class="button-description") 중요도
+                                button(class="tasks-sort-button sort-deadline")
+                                    span(class="fa fa-calendar button-icon")
+                                    span(class="button-description") 마감 기한
+                                button(class="tasks-sort-button sort-name")
+                                    span(class="fa fa-font button-icon")
+                                    span(class="button-description") 제목
+                                button(class="tasks-sort-button sort-createdAt")
+                                    span(class="fa fa-calendar-plus-o button-icon")
+                                    span(class="button-description") 만든 날짜
+                        div(class="category-theme-container")
+                            div(class="category-theme-text-wrap")
+                                span(class="text") 테마 설정
+                            ul(class="category-theme-button-container")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color brown")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color cornflowerblue")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color forestgreen")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color darkmagenta")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color darkgray")
+                                li
+                                    div(class="set-theme-button")
+                                        span(class="theme-color slategray")
+
+                        button(class="delete-category-button")
+                            span(class="fa fa-trash button-icon")
+                            span(class="button-description") 카테고리 삭제
+            div(class="sort-order-contianer")
+                button(class="sort-order-button ascending")
+                    span(class="fa fa-long-arrow-up")
+                    span(class="sort-type-text") 정렬하기
+                button(class="clear-sort-button")
+                    span(class="fa fa-times")
             div(id="tasks")
             div(id="bottom-area")
                 form(id="post-todo" onsubmit="event.preventDefault(); postTask();" autocomplete="off" method="post") 

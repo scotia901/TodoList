@@ -1,0 +1,299 @@
+#top {
+    display: flex;
+    margin: auto;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    justify-content: center;
+}
+
+h1 {
+    font-size: 60px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+#content_title {
+    margin: auto;
+    width: 300px;
+    padding-right: 15px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+#main {
+    margin: auto;
+    margin-bottom: 5px;
+    width: 300px;
+    text-align: left;
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 20px 20px 20px 20px;
+    border-color: rgb(180, 180, 180);
+    background-color: rgb(253, 253, 253);
+}
+
+.input_wrap {
+    height: 30px;
+    margin-top: 5px;
+    margin-bottom: 80px;
+}
+
+
+input {
+    width: 290px;
+    height: 100%;
+    margin-top: 10px;
+    border-color: rgb(180, 180, 180);
+    border-radius: 4px;
+    border-width: 1px;
+    border-style: solid;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+input:focus {
+    outline: none;
+    border-color:black;
+}
+
+#keep_login {
+    margin: 5px 5px 5px 5px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+.keep_login_label {
+    vertical-align: middle;
+}
+
+.submit_btn_wrap {
+    margin: 40px 0px 5px 0px;
+    height: 40px;
+}
+
+.submit_btn {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: cadetblue;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(85, 148, 150);
+}
+
+.main_page_btn_wrap {
+    margin: 40px 0px 5px 0px;
+    height: 40px;
+}
+
+.main_page_btn {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: cadetblue;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(85, 148, 150);
+}
+
+.back_page_btn_wrap {
+    margin: 10px 0px 5px 0px;
+}
+
+.back_page_btn {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    font-size: 18px;
+    font-weight: 400;
+    color: aliceblue;
+    background-color: cadetblue;
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(85, 148, 150);
+}
+
+label {
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 돋움체;
+}
+
+.error_msg {
+    margin-top: 3px;
+    color: red;
+    font-size: 14px;
+}
+
+a {
+    font-size: 16px;
+    font-family: Gothic;
+    color: rgb(39, 39, 39);
+}
+
+a:link {
+    text-decoration: none;
+}
+
+a:visited {
+    text-decoration: none;
+}
+
+.find_user_wrap {
+    padding-bottom: 20px;
+}
+
+.username-wrap {
+    border: 1px solid;
+    padding: 10px;
+    border-radius: 5px;
+    border-color: slategrey;
+    background-color: whitesmoke;
+}
+
+#user {
+    margin: auto;
+    margin-top: 5px;
+    margin-bottom: 50px;
+    width: 300px;
+    text-align: center;
+    padding: 20px 20px 20px 20px;
+}
+
+#naver_login_img {
+    margin-right: 2px;
+    width: 148px;
+    height: 40px;
+}
+
+#kakao_login_img {
+    margin-top: 10px;
+    margin-left: 2px;
+    width: 148px;
+    height: 40px;
+}
+
+.separator-line {
+    margin-bottom: 10px;
+    height: 1px;
+    width: 100%;
+    background-color: rgb(220, 220, 220);
+}
+
+#update-nickname-input {
+    border-style: solid;
+    border-radius: 2px;
+    border-width: 1px;
+    border-color:rgb(167, 167, 167);
+    height: 30px;
+    width: 150px;
+    margin-right: 5px;
+    margin-top: 0px;
+    font-size: 17px;
+    font-weight: 400;
+}
+
+#update-nickname-input:focus {
+    border-color:rgb(90, 90, 90);
+    border-width: 1px;
+}
+
+#edit-pswd-btn:hover {
+    background-color: rgb(255, 255, 255);
+}
+
+.profile-label-area {
+    margin-bottom: 10px;
+}
+
+.sns-type-text {
+    top: 0px
+}
+
+button.button {
+    color: rgb(117, 117, 117);
+    background-color: rgb(245, 245, 245);
+    border: 1px solid;
+    border-radius: 4px;
+    border-color:rgb(167, 167, 167);
+    cursor: pointer;
+    width: 55px;
+    float: right;
+    height: 30px;
+}
+
+button.button:hover {
+    background-color: rgb(255, 255, 255);
+}
+
+input + .input-area {
+    width: 290px;
+    height: 100%;
+    margin-top: 10px;
+    border-color: rgb(180, 180, 180);
+    border-radius: 4px;
+    border-width: 1px;
+    border-style: solid;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+#upload-form {
+    display: none;
+}
+
+.row {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.profile-label-area {
+    margin-bottom: 10px;
+}
+
+.profile-area {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 50px;
+    margin-top: 5px;
+    margin-bottom: 30px;
+}
+
+.profile-image.has-image-file ~ #upload-profile-image-btn {
+    display: none;
+}
+
+.profile-image:not(.has-image-file) ~ #delete-profile-image-btn {
+    display: none;
+}
+
+span {
+    font-size: 17px;
+}
+
+#send_code_btn {
+    margin-top: 5px;
+    margin-right: 5px;
+    height: 35px;
+    width: auto;
+}
+
+#send_code_btn.waiting_send {
+    background-color: rgb(200, 200, 200);
+}
+
+#auth_btn {
+    margin-top: 5px;
+    margin-right: 5px;
+}
+
+#auth_code_row {
+    margin-bottom: 130px;
+}

@@ -1,222 +1,359 @@
-const User = 'user';
-const session = require('express-session');
+require('dotenv').config();
 const userService = require('../services/userService');
+const authService = require('../services/authService');
+const cryptoUtility = require('../utilities/cryptoUtility');
 
 module.exports = {
+    renderLoginPage: async (req, res, next) => {
+        try {
+            const kakaoKey = process.env.KAKAO_REST_KEY;
+            const naverClientId = process.env.NAVER_CLIENT_ID;
+            const callbackUrl = encodeURI(process.env.AUTH_CALLBACK_URI);
+            const state = encodeURI(await cryptoUtility.createRandomHash(128, 'base64'));
+            const naverApi_url = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=" +
+                naverClientId + '&redirect_uri=' + callbackUrl + "login/naver" + '&state=' + state;
+            const kakaoApi_url = "https://kauth.kakao.com/oauth/authorize?&response_type=code&client_id=" +
+                kakaoKey + '&redirect_uri=' + callbackUrl + "login/kakao" + '&state=' + state;
 
-    getAllUsers: (req, res) => {
-        userService.getAllUsers((err, users) => {
-            if (err) {
-                res.status(500).send('Error getting all users');
-            } else {
-                res.status(200).send(users);
-            }
+            res.render('users/login', {
+                "pageTitle": process.env.PAGE_TITLE,
+                "naverApi_url": naverApi_url,
+                "kakaoApi_url": kakaoApi_url
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    renderResetPasswordPage: (req, res, next) => {
+        try {
+            res.render('reset_pswd');
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    renderFindPasswordPage: (req, res) => {
+        res.render('users/find_pswd', {
+            "pageTitle": process.env.PAGE_TITLE
         });
     },
 
-    getUser: async (req, res) => {
-        const userId = req.body.userId;
-        const password = req.body.password;
-        await userService.getUserbyUsernameAndPassword(userId, password, (error, user) => {
-            if(error) {
-                error.status = 400
-                next(error);
-            } else {
-                req.session.user.id = user.id;
-                req.session.user.nickname = user.nickname;
-                req.session.user.image = user.image;
-                res.status(200).send('Login success');
-            }
+    renderUpdatePasswordPage: (req, res) => {
+        res.render('users/edit_pswd', {
+            "pageTitle": process.env.PAGE_TITLE
         });
     },
 
-    uploadUserImage: async (req, res) => {
-        
-        const filename = req.file.filename;
-        const userId = req.session.user.id;
-        console.log(filename);
-
-        userService.uploadUserImage(userId, filename, (err, filename) => {
-            if (err) {
-                res.status(500).send('Error getting all users');
-            } else {
-                res.status(200).send(filename);
-            }
+    renderUpdateEmailPage: (req, res) => {
+        res.render('users/edit_email', {
+            "pageTitle": process.env.PAGE_TITLE
         });
     },
 
-    getUserById: (req, res) => {
-        const userId = req.parms.id;
-        const userData = req.body;
+    renderJoinPage: (req, res) => {
+        res.render('users/join', {
+            "pageTitle": process.env.PAGE_TITLE
+        });
+    },
 
-        userService.getUserById((err, user) => {
-            if (err) {
-                res.status(500).send('Error getting user by id');
+    renderFindIdPage: (req, res) => {
+        res.render('users/find_id', {
+            "pageTitle": process.env.PAGE_TITLE
+        });
+    },
+
+    getUserByUsernameAndPassword: async (req, res, next) => {
+        try {
+            const username = req.body.username;
+            const password = req.body.password;
+            const user = await userService.getUserbyUsernameAndPassword(username, password);
+
+            if (user == 'Not found user') {
+                res.status(200).send('notJoinedUser');
+            } else if (user == 'Not match password') {
+                res.status(200).send('notMatchedPassword');
             } else {
-                if (user) {
-                    res.status(200).send(user);
-                } else {
-                    res.status(404).send('Not found user');
+                req.session.user = {
+                    id: user.id,
+                    nickname: user.nickname,
+                    profileImg: user.profileImg
                 }
+                res.status(200).send('ok');
             }
-        });
+        } catch (error) {
+            next(error);
+        }
     },
 
-    getUserByEmail: (req, res) => {
-        const userEmail = req.body.email;
+    checkUserbyUsername: async (req, res, next) => {
+        try {
+            const username = req.params.username;
+            const hasUser = await userService.checkUserbyUsername(username);
 
-        userService.getUserByEmail(userEmail, (err, user) => {
-            if (err) {
-                res.status(500).send('Error getting user by id');
-            } else {
-                if (user) {
-                    console.log(user);
-                    res.status(200).json(user);
-                } else {
-                    res.status(404).send('Not found user');
-                }
-            }
-        });
+            res.status(200).send(hasUser);
+        } catch (error) {
+            next(error);
+        }
     },
 
-    createUser: (req, res) => {
-        const userData = req.body;
-        console.log(userData);
-        
-        userService.createUser(userData, (err, user) => {
-            if(err) {
-                res.status(500).send('Error creating user');
-            } else {
-                if (user) {
-                    res.status(200).send(user);
-                } else {
-                    res.status(404).send('Not found user data');
-                }
-            }
-        })
+    checkUserbyNickname: async (req, res, next) => {
+        try {
+            const nickanme = req.params.nickanme;
+            const hasUser = await userService.checkUserbyNickname(nickanme);
+
+            res.status(200).send(hasUser);
+        } catch (error) {
+            next(error);
+        }
     },
 
-    updateUserById: (req, res) => {
-        const userId = req.session.user_id;
-        const userData = req.body;
+    updateUserImage: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+            const filename = req.file.filename;
+            const imageName = await userService.updateUserImage(userId, filename);
 
-        userService.updateUserById(userId, userData, (err, user) => {
-            if (err) {
-                res.status(500).send('Error updating user by id');
-            } else {
-                if (user) {
-                    res.status(200).send(user);
-                } else {
-                    res.status(404).send('Not found user');
-                }
-            }
-        });
+            req.session.user.profileImg = imageName;
+            res.status(200).send(imageName);
+        } catch (error) {
+            next(error);
+        }
+
     },
 
-    deleteUserById: (req, res) => {
-        const userId = req.session.user_id;
+    deleteUserImage: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+            const imageName = await userService.updateUserImage(userId, null);
 
-        userService.deleteUserById(userId, (err, user) => {
-            if (err) {
-                res.status(500).send();
-            } else {
-                if (user) {
-                    res.status(200).send(user);
-                } else {
-                    res.status(404).send('Not found user');
-                }
-            }
-        });
+            req.session.user.profileImg = imageName;
+            res.status(200).send();
+        } catch (error) {
+            next(error);
+        }
     },
 
-    getUserFromKakao: async (req, res) => {
-        const code = req.query.code;
-        const state = req.query.state;
-        
-        Service.getUserFromKakao(code, state, async (err, userData) => {
-            if (err) {
-                res.status(500).send('Error getting naver user by token.');
-            } else {
-                if (userData) {
-                    if(await userService.isUserExistInDb(userData)) {
-                        userService.getUserBySnsId(userData.snsId, userData.snsType);
-                    } else {
-                        userService.createSnsUser(userData);
-                    }
-                    req.session.user.snsId;
-                    req.session.user.nickname;
-                    req.session.user.id;
+    getUsersByEmail: async (req, res, next) => {
+        try {
+            const userEmail = req.params.email;
+            const users = await userService.getUsersByEmail(userEmail);
 
-                    res.status(200).send(req.session.user);
-                } else {
-                    res.status(404).send('Not found naver user');
-                }
-            }
-        });
+            res.status(200).send(users);
+        } catch (error) {
+            next(error);
+        }
     },
 
-    loginSnsUser: async (req, res) => {
+    deleteUserById: async (req, res) => {
+        try {
+            const userId = req.session.user.id;
+
+            await userService.deleteUserById(userId);
+            req.session.destroy((error) => { throw error; });
+            res.status(200).send();
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    loginSnsUser: async (req, res, next) => {
         try {
             const code = req.query.code;
             const state = req.query.state;
-            const snsType = req.path.slice(1);
-            const userData = await userService.getUserFromSns(code, state, snsType);
-    
-            if(!await userService.isUserExistInDb(userData)) {
-                await userService.createSnsUser(userData);
+            const snsType = req.path.slice(7);
+            const snsUserData = await userService.getUserFromSns(code, state, snsType);
+
+            if (!await userService.isUserExistInDb(snsUserData.user)) {
+                await userService.createSnsUser(snsUserData.user);
             }
 
-            await userService.getUserBySnsId(userData.snsId, userData.snsType, (user) => {
-                if (user) {
-                    req.session.user = {
-                        id: user.id,
-                        snsType: user.snsType,
-                        nickname: user.nickname
-                    };
-                    res.redirect('/tasks');
-                } else {
-                    res.status(404).send('Not found naver user');
-                }
-            });
-        } catch (err) {
-            res.status(500).send('Error getting naver user.' + err);
+            const user = await userService.getUserBySnsId(snsUserData.user.snsId, snsUserData.user.snsType);
+
+            if (user) {
+                req.session.user = {
+                    id: user.id,
+                    snsType: user.snsType,
+                    nickname: user.nickname,
+                    profileImg: user.profileImg,
+                    refreshToken: snsUserData.token.refreshToken
+                };
+                res.redirect('/');
+            } else {
+                throw 'Not found';
+            }
+        } catch (error) {
+            next(error);
         }
     },
 
-    logoutUser: async (req, res) => {
-        try {
-            console.log('logout msg');
-            req.session.destroy((err) => {
-                if(err) throw err;
-                res.sendStatus(204);
-            });
-        } catch (err) {
-            console.log(err);
-            res.status(500).send('Error getting naver user.' + err);
-        }
-    },
-
-    getEmailByUser: async (req, res) => {
+    deleteSnsUser: async (req, res, next) => {
         try {
             const userId = req.session.user.id;
-            userService.getEmailByUser(userId, (error, userData) => {
-                if(error) throw error;
-                if(userData) {
-                    res.render('users/profile', {
-                        "pageTitle": process.env.PAGE_TITLE,
-                        "username": req.session.user.name,
-                        "userimg": req.session.user.img,
-                        "nickname": req.session.user.nickname,
-                        "email": userData.email,
-                        "snsType": userData.snsType
-                    });
-                } else {
-                    throw 'Not found email';
-                }
+            const snsType = req.session.user.snsType;
+            const code = req.query.code;
+            const state = req.query.state;
+
+            await userService.deleteSnsUser(userId, snsType, code, state);
+            req.session.destroy((error) => {
+                if (error) throw error;
+                res.redirect('/');
             });
         } catch (error) {
-            console.log(error);
-            res.status(500).send('Error getting naver user.' + error);
+            next(error);
+        }
+    },
+
+    logoutUser: async (req, res, next) => {
+        try {
+            req.session.destroy((error) => {
+                if (error) throw error;
+                res.sendStatus(204);
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    requestToDeleteSnsUser: async (req, res, next) => {
+        try {
+            const snsType = req.session.user.snsType;
+            const kakaoKey = process.env.KAKAO_REST_KEY;
+            const naverClientId = process.env.NAVER_CLIENT_ID;
+            const callbackUrl = encodeURI(process.env.AUTH_CALLBACK_URI);
+            const state = encodeURI(await cryptoUtility.createRandomHash(128, 'base64'));
+            const naverApi_url = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=" +
+                naverClientId + '&redirect_uri=' + callbackUrl + "delete/naver" + '&state=' + state;
+            const kakaoApi_url = "https://kauth.kakao.com/oauth/authorize?&response_type=code&client_id=" +
+                kakaoKey + '&redirect_uri=' + callbackUrl + "delete/kakao" + '&state=' + state;
+
+            if (snsType == 'kakao') {
+                res.status(200).send(kakaoApi_url);
+            } else if (snsType == 'naver') {
+                res.status(200).send(naverApi_url);
+            } else {
+                throw 'Forbidden';
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    getUserProfileByUserId: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+
+            const userData = await userService.getUserProfileByUserId(userId);
+            if (userData) {
+                res.render('users/profile', {
+                    "pageTitle": process.env.PAGE_TITLE,
+                    "username": userData.name,
+                    "profileImg": userData.profileImg,
+                    "nickname": userData.nickname,
+                    "email": userData.email,
+                    "snsType": userData.snsType
+                });
+            } else {
+                throw 'Not found';
+            }
+        } catch (error) {
+            next(error);
+        }
+
+    },
+
+    updateNicknameByUserId: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+            const nickname = req.body.nickname;
+
+            await userService.updateNicknameByUserId(userId, nickname);
+            req.session.user.nickname = nickname;
+            res.status(200).send();
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    updateEmailByUserId: async (req, res, next) => {
+        try {
+            const email = req.body.email;
+            const userId = req.session.user.id;
+
+            await userService.updateEmailByUserId(userId, email);
+            delete req.session.auth.updateEmail;
+            res.status(200).send();
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    updatePasswordByUserId: async (req, res, next) => {
+        try {
+            const password = req.body.newPswd;
+            const userId = req.session.user.id;
+
+            await userService.updatePasswordByUserId(userId, password);
+            res.status(200).send();
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    createAndSendResetPasswordAuth: async (req, res, next) => {
+        try {
+            const username = req.params.username;
+            const email = req.params.email;
+            const token = await authService.createResetPasswordAuth(username);
+
+            await authService.sendResetPasswordEmail(username, email, token);
+            res.status(200).json({
+                email: email
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    updatePasswordByToken: async (req, res, next) => {
+        try {
+            const token = req.body.token;
+            const password = req.body.password;
+            const username = await authService.getResetPswdUserByToken(token);
+
+            await userService.updatePasswordByUsername(username, password);
+
+            delete req.session.auth.resetPswd;
+            res.status(200).send('OK');
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    createAndSendJoinAuth: async (req, res, next) => {
+        try {
+            const userData = req.body;
+            const username = req.body.username;
+            const email = req.body.email;
+            const token = await authService.createJoinAuth(userData);
+
+            await authService.sendJoinUserEmail(username, email, token);
+            res.status(200).json({
+                email: email
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    deleteUser: async (req, res, next) => {
+        try {
+            const userId = req.session.user.id;
+            await userService.deleteUser(userId);
+
+            res.status(200);
+        } catch (error) {
+            next(error);
         }
     }
 }

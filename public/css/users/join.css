@@ -42,7 +42,7 @@ h1 {
     background-color: rgb(253, 253, 253);
 }
 
-.join_input_area {
+.join_input_wrap {
     height: 30px;
     margin-top: 5px;
     margin-bottom: 60px;
@@ -65,7 +65,7 @@ input:focus {
     border-color:black;
 }
 
-#join_btn_area {
+#join_btn_wrap {
     margin: 100px 0px 10px 0px;
     height: 40px;
 }

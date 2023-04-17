@@ -1,4 +1,7 @@
+require('dotenv').config();
+const PROFILE_IMG_PATH = process.env.PROFILE_IMG_PATH;
 const multer = require('multer');
+const path = require('node:path');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, PROFILE_IMG_PATH);
@@ -9,6 +12,8 @@ const storage = multer.diskStorage({
         cb(null, randomFileName + ext)
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage
+});
 
 module.exports = upload;

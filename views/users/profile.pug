@@ -1,68 +1,75 @@
-doctype html
-html(lang="ko")
-    head
-        meta(charset="UTF-8")
-        meta(http-equiv="X-UA-Compatible", content="IE=edge")
-        meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        link(rel="stylesheet" href="/css/users/profile.css")
-        script(type="text/javascript" src="/js/users/edit.js")
-        script(type="text/javascript" src="/js/users/image.js")
-        title=pageTitle + " - 회원 정보"
-    body
-        div(id="content")  
-            div(id="top")
-                a(id="main-link" href="/")
-                    h1 To Do
-            h2(id="join-text") 회원 정보
-            div(id="main")
-                div(class="row")
-                    div(class="profile-label-area")
-                        label(for="user-img") 회원 사진
-                    div(class="profile-area" id="user-img-area")
-                        if userimg
-                            img(class="user-image has-image-file" name="user-img" id="user-img" src="/data/uploads/img/profile/" + userimg style="width: 50px; height: 50px")
-                        form(id="upload-form" action="profile" method="post")
-                            input(type="file" id="upload-img" name="uploaded-file" accept=".png, .jpg, .jpeg" hidden)
-                        button(type="button" class="button" id="edit-userimg-btn" onclick="uploadImg();") 변경
-                        button(type="button" class="button" id="to-default-img-btn" onclick="toDefaultImg();" ) 삭제
-                div(class="separator-line")
-                if usernmae
-                    div(class="row")
-                        div(class="profile-label-area")
-                            label(for="username") 아이디
-                        div(class="profile-area" id="id-area")
-                            a(name="username" id="username")=username
-                    div(class="separator-line")
-                div(class="row")
-                    div(class="profile-label-area")
-                        label(for="nickname") 별명
-                    div(class="profile-area" id="edit-username-area")
-                        a(name="nickname" id="nickname")=nickname
-                        button(type="button" class="button" id="edit-username-btn" onclick="changeUsername();") 변경
-                div(class="separator-line")
-                if usernmae
-                    div(class="row")
-                        div(class="profile-label-area")
-                            label(for="pswd1") 비밀번호
-                        div(class="profile-area" id="edit-pswd-area")
-                            button(type="button" class="button" id="edit-pswd-btn" onclick="location.href='/users/profile/edit/password';") 변경
-                    div(class="separator-line")
-                div(class="row")
-                    div(class="profile-label-area")
-                        label(for="email") 이메일
-                    div(class="profile-area" id="edit-email-area")
-                        a(type="email" name="email" id="email")=email
-                        if username
-                            button(type="button" class="button" id="edit-email-btn" onclick="location.href='/users/profile/edit/email';") 변경
-                    div(class="separator-line")
-                if snsType
-                    div(class="row")
-                        div(class="profile-label-area")
-                            label(for="sns-type") SNS 연동
-                        div(class="profile-area" id="edit-sns-type-area")
-                            img(class="sns-icon" name="sns-img" id="sns-icon-img" src="/data/login/" + snsType + "_icon.png" style="width: 50px; height: 50px")
-                            button(type="button" class="button" id="delete-sns-user-btn" onclick="location.href='/users/profile/edit/email';") 탈퇴
-                    div(class="separator-line")
-                div(class="row")
-                    div(id="return-btn-area")
-                        button(type="button" id="return-btn" onclick="location.href='/';") 확인
+extends layout.pug
+
+block append scripts
+    script(type="text/javascript" src="/js/users/edit.js")
+    script(type="text/javascript" src="/js/users/image.js")
+
+block stylesheet
+    link(rel="stylesheet" href="/css/users/style.css")
+
+block title
+    title=pageTitle + " - 회원 정보"
+
+block content
+    h2(id="content_title") 회원 정보
+    div(id="main")
+        div(class="row")
+            div(class="profile-label-area")
+                label(for="profile-image") 회원 사진
+            div(class="profile-area" id="profile-image-area")
+                if profileImg
+                    img(class="profile-image has-image-file" src="/data/uploads/img/profile/" + profileImg)
+                else
+                    img(class="profile-image")
+                form(id="upload-form" action="profile" method="post")
+                    input(type="file" id="upload-img" name="uploaded-file" accept=".png, .jpg, .jpeg" hidden)
+                button(type="button" class="button" id="upload-profile-image-btn") 변경
+                button(type="button" class="button" id="delete-profile-image-btn") 삭제
+        div(class="separator-line")
+        if username
+            div(class="row")
+                div(class="profile-label-area")
+                    label(for="username") 아이디
+                div(class="profile-area" id="id-area")
+                    span(name="username" id="username")=username
+            div(class="separator-line")
+        div(class="row")
+            div(class="profile-label-area")
+                label(for="nickname") 별명
+            div(class="profile-area" id="update-nickname-area")
+                span(name="nickname" id="nickname")=nickname
+                button(type="button" class="button" id="update-nickname-btn") 변경
+        div(class="separator-line")
+        if username
+            div(class="row")
+                div(class="profile-label-area")
+                    label(for="pswd1") 비밀번호
+                div(class="profile-area" id="edit-pswd-area")
+                    button(type="button" class="button" id="edit-pswd-btn" onclick="location.href='/users/profile/edit/password';") 변경
+            div(class="separator-line")
+        div(class="row")
+            div(class="profile-label-area")
+                label(for="email") 이메일
+            div(class="profile-area" id="edit-email-area")
+                span(type="email" name="email" id="email")=email
+                if username
+                    button(type="button" class="button" id="edit-email-btn" onclick="location.href='/users/profile/edit/email';") 변경
+        div(class="separator-line")
+        if snsType
+            div(class="row")
+                div(class="profile-label-area")
+                    label(for="sns-type") SNS 연동
+                div(class="profile-area" id="edit-sns-type-area")
+                    img(class="sns-icon " + snsType name="sns-img" id="sns-icon-img" src="/data/login/" + snsType + "_icon.png" style="width: 50px; height: 50px")
+                    button(type="button" class="button" id="delete-sns-user-btn") 해제
+            div(class="separator-line")
+        if !snsType
+            div(class="row")
+                div(class="profile-label-area")
+                    label(for="sns-type") 회원 탈퇴
+                div(class="profile-area" id="edit-sns-type-area")
+                    button(type="button" class="button" id="delete-user-btn") 탈퇴
+            div(class="separator-line")
+        div(class="row")
+            div(class="submit_btn_wrap")
+                button(type="button" class="submit_btn" id="return-btn" onclick="location.href='/';") 확인

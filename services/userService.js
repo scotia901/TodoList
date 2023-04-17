@@ -1,112 +1,67 @@
 require('dotenv').config();
-const { User } = require('../models/userModel');
+const { User } = require('../models/todoModel');
 const authService = require('../services/authService');
+const TaskService = require('../services/taskService');
+const CategoryService = require('../services/categoryService');
 const cryptoUtility = require('../utilities/cryptoUtility');
-const { reject } = require('lodash');
-const { resolve } = require('node:path');
+const fileUtility = require('../utilities/fileUtility');
 
 module.exports = {
+    checkUserbyUsername: async (username) => {
+        const userCount = await User.count({ where: { name: username } });
+        return userCount == 1 ? true : false;
+    },
 
-    getAllUsers: (callback) => {
-        db.query('SELECT * FROM users', function(err, result) {
-            if(err) {
-                callback(err, null);
+    checkUserbyNickname: async (nickname) => {
+        const userCount = await User.count({ where: { nickname: nickname } });
+        return userCount == 1 ? true : false;
+    },
+
+    getUserbyUsernameAndPassword: async (username, password) => {
+        const user = await User.findOne({
+            attributes: ['id', 'nickname', 'profileImg', 'passwordHash', 'passwordSalt'],
+            where: {
+                name: username
+            }
+        });
+
+        if(!user) {
+            return 'Not found user';
+        } else {
+            const passwordHash = await cryptoUtility.createHashByPasswordAndSalt(password, user.passwordSalt);
+
+            if(user.passwordHash.toString() === passwordHash.toString()) {
+                const userData = {
+                    id: user.id,
+                    nickname: user.nickname,
+                    profileImg: user.profileImg
+                }
+                return userData;
             } else {
-                callback(null, result);
+                return 'Not match password';
             }
-        });
-    },
-
-    resetUserPassword: async (username, email) => {
-        const user = await User.findOne({
-            where: {
-                username: username,
-                email: email
-            }
-        })
-        if(user.length == 1) {
-            const code = cryptoUtility.createRandomCode();
-            let expireDate = new Date();
-            expireDate.setDate(expireDate.getDate() + 1);
-
-            // storing auth token which is better db and memeory  
-            const tokensConnection = await mysql.createConnection(tokensDbOptions);
-            let query = 'INSERT INTO reset_password (reset_code, user_id, expire_date) values(?, ?, ?) ON DUPLICATE KEY UPDATE reset_code=?';
-            await tokensConnection.execute(query, [code, user[0].user_id, expireDate, code]);
-            
-            emailUtility.sendEmailToRestPassword(email, code);
-
-            return new Promise(resolve(user.email));
-        } else {
-            return new Promise(reject('Not found user'));
         }
     },
 
-    getUserbyUsernameAndPassword: async (userId, password, callback) => {
+    updateUserImage: async (userId, filename) => {
         const user = await User.findOne({
-            attributes: ['id', 'nickname', 'image', 'salt'],
-            where: {
-                username: userId
-            }
-        });
-
-        const unhashPswd = await cryptoUtility.unhashPassword(password, user.salt);
-
-        if(unhashPswd = password) {
-            const userDate = {
-                id: user.id,
-                nickname: user.nickname,
-                image: user.image
-            }
-            callback(null, userDate);
-        } else {
-            const error = new Error('Error not fount user');
-            callback(error, null);
-        }
-    },
-
-    uploadUserImage: async (userId, filename, callback) => {
-        await User.findOne({
-            attributes: ['image'],
+            attributes: ['profileImg'],
             where: {
                 id: userId,
             }
-        }).then(response => {
-            if(response) {
-                const imgPath = PROFILE_IMG_PATH + "/" + response[0].image;
+        });
 
-                fs.stat(imgPath, (error, stats) => {
-                    if (!error) {
-                        fs.unlink(imgPath, (error) => { if(error) throw error; });
-                    }
-                });
-            }
-        }).then(response => {
-            callback(null, response);
-        }).catch(error => {
-            callback(error, null);
-        })
+        if(user.profileImg != null) {
+            const imgPath = process.env.PROFILE_IMG_PATH + "/" + user.profileImg;
+            fileUtility.deleteFile(imgPath, (error) => { throw error; });
+        }
 
-        
-
-
-        // const [field] = await usersConnection.execute(`SELECT user_img FROM users WHERE user_id="${req.session.user_id}"`);
-        // if(field) {
-        //     const imgPath = PROFILE_IMG_PATH + "/" + field[0].user_img;
-
-        //     fs.stat(imgPath, (err, stats) => {
-        //         if (!err) {
-        //             fs.unlink(imgPath, (err) => {
-        //                 if(err) throw err;
-        //             });
-        //         }
-        //     });
-        // }
-
-        await usersConnection.execute(`UPDATE users SET user_img="${req.file.filename}" WHERE user_id="${req.session.user_id}"`);
-        await usersConnection.end();
-        req.session.user.image = req.file.filename;
-        res.sendStatus(200);
+        const result = await User.update({ profileImg: filename }, { where: { id: userId }});
+        if(result[0] == 1) {
+            return filename;
+        } else {
+            throw 'Bad request';
+        }
     },
 
     getUserByUserId: async (userId, callback) => {
@@ -125,67 +80,62 @@ module.exports = {
     },
 
     getUserBySnsId: async (snsId, snsType, callback) => {
-        try {
             const result = await User.findOne({
-                attributes: ['id', 'nickname', 'snsId', 'snsType'],
+                attributes: ['id', 'nickname', 'snsId', 'snsType', 'profileImg'],
                 where: {
                     snsId: snsId,
                     snsType: snsType
                 }
             });
 
-            callback(result.dataValues);
-        } catch (err) {
-            console.error(err);
-            throw err;
+            if(result) {
+                return result.dataValues;
+            } else {
+                throw 'Not found';
+            }
+    },
+
+    getUsersByEmail: async (userEmail) => {
+        const users = await User.findAll({
+            attributes: ['name'],
+            where: {
+                email: userEmail,
+                snsId: null,
+            }
+        });
+
+        if(users.length > 0) {
+            return users;
+        }  else {
+            return null;
         }
     },
 
-    getUserByEmail: (userEmail, callback) => {
-        db.execute(`SELECT user_id FROM users WHERE email = "${userEmail}"`, function (err, row, result) {
-            if (err) {
-                callback(err, null);
-            } else {
-                let userId = new Array;
-                row.forEach(element => {
-                    element.user_id;
-                    userId.push(element.user_id);
-                });
-                callback(null, userId);
-            };
+    getUsersByEmailAndUserName: async (userName, userEmail, callback) => {
+        User.count({
+            where: {
+                email: userEmail,
+                name: userName,
+                snsId: null,
+            }
+        }).then(response => {
+            callback(null, response);
+        }).catch(error => {
+            error.statsu = 500;
+            callback(error, null);
         })
     },
 
-    createUser: async (userData, callback) => {
-        const hashPassword = await cryptoUtility.hashPassword(userData.password);
-
-        await User.create({
-            username: userData.username,
-            email: userData.email,
-            socialType: socialType,
-            password_hash: hashPassword.hash,
-            password_salt: hashPassword.salt,
-        }).then(respone => {
-            callback(null, respone);
-        })
-        db.execute(`INSERT INTO auth_join (
-            user_id,
-            name,
-            email,
-            social_type,
-            password_hash,
-            password_salt,
-            password_iter
-        )
-        VALUES(?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE auth_code = ?`,
-        [userData.userId, userData.name, userData.email, userData.socialType, userData.hash, userData.salt], function(err, result) {
-            if(err) {
-                callback(err, null);
-            } else {
-                callback(null, result.row[0]);
-            }
+    createUser: async (user) => {
+        const result = await User.create({
+            name: user.username,
+            nickname: user.nickname,
+            email: user.email,
+            passwordHash: user.passwordHash,
+            passwordSalt: user.passwordSalt,
         });
+
+        await CategoryService.createDefaultCategoriesByUser(result.id);
     },
 
     updateUserById: (userId, userData, callback) => {
@@ -198,124 +148,132 @@ module.exports = {
         });
     },
 
-    deleteUserById: (userId, callback) => {
-        db.query(`DELETE FROM users WHERE id=${userId}`, function(err, result) {
-            if(err) {
-                callback(err, null);
-            } else {
-                callback(null, result);
-            }
-        });
-    },
-    
-    hashPassword: async (password, callback) => {
-        try {
-            cryptoUtility.hashPassword()
-            const salt = crypto.randomBytes(128).toString("base64");
-            const iterations = 10000;
-            const keylen = 128;
-            const digest = 'sha512';
-            crypto.pbkdf2(password, salt, iterations, keylen, digest, (err, derivedKey) => {
-                if(err) {
-                    throw err;
-                } else {
-                    callback(null, {salt: salt, hash:derivedKey});
-                }
-            });
-        } catch (err) {
-            callback(err, null);
-        }
+    deleteUserById: async (userId) => {
+        const result = await User.destroy({ where: { id: userId }});
+        if(result != 1) throw 'Bad request';
     },
 
     getUserFromSns: async (code, state, snsType) => {
-        try {
-            let user = {};
-            if(snsType == 'naver') {
-                const token = await authService.getTokenFromNaver(code, state);
-                user = await authService.getUserFromNaverToken(token);
-            } else {
-                const token = await authService.getTokenFromKakao(code, state);
-                user = await authService.getUserFromKakaoToken(token);
-            }
-            console.log(user);
-            return user
-        } catch (err) {
-            console.error(err);
+        let data = {token: new Object(), user: new Object()};
+        if(snsType == 'naver') {
+            const callbackUrl = process.env.AUTH_CALLBACK_URI + 'login/naver';
+            data.token = await authService.getTokenFromNaver(code, state, callbackUrl);
+            data.user = await authService.getUserFromNaverToken(data.token);
+        } else if(snsType == 'kakao') {
+            const callbackUrl = process.env.AUTH_CALLBACK_URI + 'login/kakao';
+            data.token = await authService.getTokenFromKakao(code, state, callbackUrl);
+            data.user = await authService.getUserFromKakaoToken(data.token);
+        } else {
+            throw 'Bad Request';
         }
+
+        return data;
     },
 
-    deleteSnsUser: async (req, res, callback) => {
-        const token = await authService.getTokenFromKakao(code, state);
-        const snsId = await authService.deleteKakaoUserByToken(token);
-        if(snsId) {
-            User.destroy({
+    deleteSnsUser: async (userId, snsType, code, state) => {
+        let snsUser = {};
+        if(snsType == 'naver') {
+            const callbackUrl = process.env.AUTH_CALLBACK_URI + 'delete/naver'
+            const token = await authService.getTokenFromNaver(code, state, callbackUrl);
+            snsUser = await authService.deleteNaverUserByToken(token);
+        } else if(snsType == 'kakao') {
+            const callbackUrl = process.env.AUTH_CALLBACK_URI + 'delete/kakao'
+            const token = await authService.getTokenFromKakao(code, state, callbackUrl);
+            snsUser = await authService.deleteKakaoUserByToken(token);
+        } else {
+            throw 'Bad request';
+        }
+
+        if(snsUser.id || snsUser.result == 'success') {
+            await TaskService.deleteTasksbyUser(userId);
+            await CategoryService.deleteCategoriesByUser(userId);
+            await User.destroy({
                 where: {
-                    snsId: snsId,
-                    snsType: 'kakao'
+                    id: userId,
+                    snsType: snsType
                 }
-            }).then(() => {
-                callback(null);
-            }).catch(error => {
-                console.error(error);
-                callback(error)
-            })
+            });
+        } else {
+            throw 'Not found';
         }
     },
 
-    isUserExistInDb: async (user) => {
-        const snsId = user.snsId;
-        try {
-            if(snsId) {
-                const userCount = await User.count({
-                    where: { snsId: snsId }
-                });
-    
-                if(userCount > 0) {
-                    return true
-                } else {
-                    return false
-                }
-            }
-        } catch (err) {
-            console.error(err);
+    isUserExistInDb: async (userData) => {
+        const snsId = userData.snsId;
+        const userCount = await User.count({ where: { snsId: snsId }});
+
+        if(userCount > 0) {
+            return true;
+        } else {
+            return false; 
         }
     },
 
     createSnsUser: async (userData) => {
-        try {
             const nickname = userData.nickname ? userData.nickname : "익명" ;
             const snsId = userData.snsId;
             const email = userData.email;
             const snsType = userData.snsType;
-    
             const result = await User.create({
                 nickname: nickname,
                 email: email,
                 snsId: snsId,
                 snsType: snsType,
-                snsConnectAt: new Date()
+                snsConnectAt: new Date()   
             });
 
+            await CategoryService.createDefaultCategoriesByUser(result.id);
             return result;
-        } catch (err) {
-            console.error(err);
-        }
     },
 
-    getEmailByUser: async (userId, callback) => {
-        try {
-            let result = await User.findOne({
-                attributes: ['email', 'snsType'],
+    getUserProfileByUserId: async (userId) => {
+            const result = await User.findOne({
+                attributes: ['email', 'snsType', 'name', 'nickname', 'profileImg'],
                 where: { id: userId }
             });
             const regEx = /(?<=.{2})[^@\n](?=[^@\n]*?@)|(?<=\w{2})[^@\n](?=[^@\n]*?[.])/g
             result.email = result.email.replace(regEx, '*');
 
-            if(result) callback(null, result);
-        } catch (error) {
-            console.log(error);
-            callback(error, null);
-        }
+            if(result) {
+                return result;
+            } else {
+                return null;
+            }
+    },
 
+    updateNicknameByUserId: async (userId, nickname) => {
+        const result = await User.update({ nickname: nickname }, { where: { id: userId }});
+        if(result[0] != 1) throw 'Not found';
+    },
+
+    updateEmailByUserId: async (userId, email) => {
+        const result = await User.update({ email: email }, { where: { id: userId }});
+        if(result[0] != 1) throw 'Not found';
+    },
+
+    updatePasswordByUserId: async (userId, password) => {
+        const hashPassword = await cryptoUtility.generateHashAndSalt(password);
+        const result = await User.update({
+            passwordHash: hashPassword.hash,
+            passwordSalt: hashPassword.salt
+        }, {
+            where: {
+                id: userId
+            }
+        });
+
+        if(result[0] != 1) throw 'Not found';
+    },
+
+    updatePasswordByUsername: async (username, password) => {
+        const hashPassword = await cryptoUtility.generateHashAndSalt(password);
+        const result = await User.update({
+            passwordHash: hashPassword.hash,
+            passwordSalt: hashPassword.salt
+        }, {
+            where: { name: username }
+        });
+
+        if(result[0] != 1) throw 'Not found';
     }
 }

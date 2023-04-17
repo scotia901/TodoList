@@ -4,7 +4,30 @@ html, body {
     width: 100%;
     margin: 0;
     top: 0;
-    background-color:cornflowerblue;
+}
+
+body[data-theme="brown"], body[data-theme="brown"]  #bottom-area {
+    background-color: brown;
+}
+
+body[data-theme="cornflowerblue"], body[data-theme="cornflowerblue"]  #bottom-area {
+    background-color: cornflowerblue;
+}
+
+body[data-theme="forestgreen"], body[data-theme="forestgreen"]  #bottom-area {
+    background-color: forestgreen;
+}
+
+body[data-theme="darkmagenta"], body[data-theme="darkmagenta"]  #bottom-area {
+    background-color: darkmagenta;
+}
+
+body[data-theme="darkgray"], body[data-theme="darkgray"]  #bottom-area {
+    background-color: darkgray;
+}
+
+body[data-theme="slategray"], body[data-theme="slategray"]  #bottom-area {
+    background-color: slategray;
 }
 
 #sidebar {
@@ -12,11 +35,21 @@ html, body {
     width: 200px;
     position: fixed;
     background-color: rgb(220, 220, 220);
-    z-index: 2;
+    z-index: 3;
+}
+
+#sidebar.minimal.show {
+    display: block;
+    position: fixed;
+}
+
+
+#nickname {
+    font-weight: 600;
 }
 
 #user {
-    margin-top: 20px;
+    margin-top: 10px;
     margin-left: 10px;
     height: 50px;
     margin-bottom: 10px;
@@ -67,7 +100,7 @@ html, body {
     cursor: pointer;
 }
 
-#division-line {
+#split-line {
     border-top: 1px solid;
     width: 94%;
     margin: auto;
@@ -110,7 +143,7 @@ html, body {
 
 .category-title {
     display: block;
-    margin-top: 25px;
+    margin-top: 34px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -119,7 +152,7 @@ html, body {
     padding: 7px;
 }
 
-.personal-category:hover .category-title-text {
+.personal-category .category-title-text:hover {
     cursor: default;
     background-color: rgba(255, 255, 255, 0.3);
 }
@@ -130,11 +163,11 @@ html, body {
 
 #top{ 
     color: white;
-    margin-right: 140px;
 }
 
 li.task-container {
-    display: block;
+    position: relative;
+    flex-wrap: wrap;
     margin-top: 0.2em;
     margin-bottom: 0.2em;
     padding: 12px 0px 12px 0px;
@@ -144,6 +177,7 @@ li.task-container {
     border-radius: 5px;
     list-style: none;
     min-width: 300px;
+    min-height: 30px;
 }
 
 li.task-container:hover {
@@ -153,8 +187,7 @@ li.task-container:hover {
 ul.task-lists {
     position: inherit;
     padding: 0;
-    margin-right: 50px;
-    margin-top: 5px
+    margin-top: 5px;
 }
 
 a#username, a#email{
@@ -181,17 +214,12 @@ a#username, a#email{
 .task-text {
     white-space: normal;
     word-break: break-all;
-    margin-right: 180px;
-    margin-left: 10px;
 }
 
-.delete-category-button {
-    position: absolute;
-    top: 25px;
-    right: 50px;
-    background-color: rgba(255, 255, 255, 1);
-    border-width: 0px;
-    border-radius: 7px;
+.task-text-wrap {
+    margin-left: 50px;
+    margin-right: 90px;
+    margin-top: 3px;
 }
 
 .task-text.completed {
@@ -199,12 +227,12 @@ a#username, a#email{
 }
 
 .toggle-completed-button {
-    display: inline-block;
+    position: absolute;
     width: 28px;
     height: 28px;
     border: 3px solid rgb(140, 140, 140);
     border-radius: 50%;
-    margin-left: 5px;
+    margin-left: 10px;
     padding: 0px;
 }
 
@@ -247,15 +275,16 @@ a#username, a#email{
 }
 
 #tasks {
-    margin-top: 50px;
-    margin-bottom: 100px;
-}
-
-.complated-tasks-btn:has(~ #completed-ul:empty) {
     display: none;
+    margin-top: 30px;
+    padding-bottom: 100px;
 }
 
-:not(.category-title.personal-category) ~ .delete-category-button {
+.sort-order-contianer.active + #tasks {
+    margin-top: 5px;
+}
+
+.complated-tasks-btn:has(~ .completed-ul:empty) {
     display: none;
 }
 
@@ -389,7 +418,9 @@ a#username, a#email{
 }
 
 .toggle-impotrance-button {
-    float: right;
+    position: absolute;
+    top: 12px;
+    right: 5px;
 }
 
 .deadline {
@@ -411,7 +442,7 @@ a#username, a#email{
     font-size: 15px;
 }
 
-.complete-deadline-text {
+.complete-deadline-text-wrap {
     color:gray;
     display: inline;
     width: auto;
@@ -583,14 +614,15 @@ button[name="put-btn"]:hover {
 }
 
 #bottom-area {
+    display: none;
     padding-top: 10px;
     height: 90px;
     position: fixed;
     bottom: 0;
-    background-color:cornflowerblue;
     z-index: 1;
     min-width: 400px;
-    opacity: 90%;
+    opacity: 94%;
+    background-color: cornflowerblue;
     backdrop-filter: blur(4px);
 }
 
@@ -625,20 +657,23 @@ button[name="put-btn"]:hover {
 }
 
 .show-dropdown-menu-button {
-    float: right;
+    position: absolute;
+    top: 12px;
+    right: 45px;
 }
 
 .dropdown-menu {
+    padding: 1px;
     border: solid 1px;
     border-radius: 5px;
-    border-color: gray;
+    border-color: rgba(0, 0, 0, 0.2);
     width: 200px;
-    right: 30px;
-    padding-left: 0px;
+    right: -10px;
     z-index: 3;
     position: absolute;
     background-color: white;
     display: none;
+    z-index: 1;
 }
 
 .show-dropdown-menu-button.active .dropdown-menu {
@@ -652,7 +687,10 @@ button[name="put-btn"]:hover {
 }
 
 .additional-information {
-    margin-left: 45px;
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+    margin-left: 50px;
 }
 
 .show-dropdown-menu-button, .toggle-impotrance-button {
@@ -675,11 +713,22 @@ button[name="put-btn"]:hover {
     color: cornflowerblue;
 }
 
-.set-deadline-button, .update-text-button, .delete-task-button {
+.set-deadline-button, .update-text-button, .delete-task-button, .update-category-name-button,
+.update-tasks-sort-button, .set-category-theme-button, .delete-category-button {
     background-color: rgba(255, 255, 255, 0);
     border-style: none;
     float: left;
     height: 40px;
+    width: 100%;
+}
+
+.update-category-name-button, .delete-category-button {
+    display: none;
+}
+
+.category-title.personal-category + .category-property-btn .update-category-name-button,
+.category-title.personal-category + .category-property-btn .delete-category-button {
+    display: block;
 }
 
 .fa-calendar.button-icon, .fa-pencil-square-o.button-icon, .fa-trash-o.button-icon {
@@ -689,21 +738,8 @@ button[name="put-btn"]:hover {
     width: 40px;
 }
 
-.fa-trash.button-icon {
-    color: rgb(50, 50, 50);
-    font-size: 35px;
-}
-
 .button-description {
     display: none;
-}
-
-.set-deadline-button:has(.button-description) .button-description,
-.update-text-button:has(.button-description) .button-description,
-.delete-task-button:has(.button-description) .button-description {
-    display: block;
-    float: left;
-    font-size: 17px;
 }
 
 .fa-calendar.text-icon {
@@ -713,3 +749,335 @@ button[name="put-btn"]:hover {
 .category.active {
     background-color: rgb(210, 210, 210);
 }
+
+.category.tasks-count {
+    margin: 7px 5px 7px 0px;
+    padding: 3px 8px 3px 8px;
+    border: 1px none;
+    border-radius: 10px;
+    font-size: 14px;
+    background-color: rgb(200, 200, 200);
+}
+
+.task-lists {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.task-lists.hidden  {
+    display: none;
+}
+
+.completed-tasks-btn {
+    background-color: rgb(250, 250, 250);
+    padding: 5px 10px 5px 10px;
+    border: none;
+    font-size: 17px;
+    border-radius: 5px;
+    opacity: 80%;    
+}
+
+.completed-tasks-btn:hover {
+    opacity: 100%;
+}
+
+.fa-light.fa-angle-right {
+    font-size: 20px;
+    margin-right: 5px;
+}
+
+.completed-tasks-count-text {
+    margin-left: 5px;
+}
+
+ .completed-tasks-btn-container.hidden {
+    display: none;
+}
+
+.submenu > .button-description {
+    display: block;
+    float: left;
+    font-size: 17px;
+}
+
+.split-dot {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.split-dot.hide {
+    display: none;
+}
+
+.fa.fa-bars.sidebar-btn-icon {
+    padding: 7px;
+    border-radius: 5px;
+}
+
+.sidebar-btn {
+    display: none;
+}
+
+.sidebar-btn > .fa.fa-bars:hover { 
+    background-color: rgba(70, 70, 70, 0.2);
+}
+
+#content-blocker {
+    display: none;
+}
+
+@media screen and (max-width: 750px) {
+    #sidebar {
+        display: none;
+    }
+
+    #sidebar > .sidebar-btn {
+        display: flex;
+        margin-top: 5px;
+        margin-left: 15px;
+    }
+
+    #top > .sidebar-btn {
+        display: flex;
+        margin-top: 15px;
+        margin-left: 10px;
+    }
+
+    #top > .category-title {
+        margin-top: 5px;
+    }
+
+    #content {
+        margin-left: 30px;
+    }
+
+    #sidebar.show {
+        display: block;
+    }
+
+    #sidebar.show + #content-blocker {
+        display: block;
+        position: fixed;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(50, 50, 50, 0.5);
+    }
+}
+
+.category-property-btn {
+    position: absolute;
+    right: 80px;
+    top: 50px;
+    padding: 5px 7px 5px 7px;
+    border-radius: 5px;
+}
+
+.category-property-btn:hover {
+    background-color: rgba(250, 250, 250, 0.5);
+}
+
+.category-property-btn.hide {
+    display: none;
+}
+
+.fa.fa-ellipsis-h {
+    font-size: 27px;
+}
+
+.category.dropdown-menu {
+    border: solid 1px;
+    border-radius: 5px;
+    border-color: rgba(0, 0, 0, 0.2);
+    width: 260px;
+    right: -60px;
+    z-index: 3;
+    position: absolute;
+    background-color: white;
+    display: none;
+}
+
+.category-property-btn.active .category.dropdown-menu {
+    display: grid;
+}
+
+.category.dropdown-menu .button-description {
+    display: block;
+    float: left;
+    font-size: 17px;
+}
+
+.category.dropdown-menu .button-icon {
+    color: rgb(140, 140, 140);
+    font-size: 22px;
+    float: left;
+    width: 40px;
+}
+
+.delete-category-button > .fa-trash.button-icon, .fa-trash.button-icon ~ .button-description {
+    color: rgb(225, 0, 0);
+}
+
+.tasks-sort.dropdown-menu {
+    display: none;
+    list-style: none;
+}
+
+.update-tasks-sort-button.active {
+    background-color: rgb(240, 240, 240);
+}
+
+.update-tasks-sort-button.active + .tasks-sort.dropdown-menu {
+    position: fixed;
+    display: grid;
+    right: 275px;
+}
+
+.tasks-sort-container {
+    list-style: none;
+}
+
+.dropdown-menu > button {
+    background-color: rgba(255, 255, 255, 0);
+    border-style: none;
+    float: left;
+    height: 40px;
+    width: 100%;
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.dropdown-menu  > button:hover, .update-tasks-sort-button:hover {
+    background-color: rgb(240, 240, 240);
+}
+
+.category-theme-container {
+
+}
+
+.category-theme-text {
+    display: block;
+    color: black;
+    font-size: 17px;
+    height: 40px;
+}
+
+.category-theme-button-container {
+    cursor: default;
+    display: flex;
+    padding: 1px;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    height: 160px;
+}
+
+.category-theme-button-container > li {
+    list-style: none;
+    width: 70px;
+    height: 70px;
+}
+
+.set-theme-button {
+    border: solid 1px;
+    border-radius: 7px;
+    border-color: rgba(0, 0, 0, 0);
+    padding: 3px;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.set-theme-button:hover {
+    border-color: gray;
+}
+
+.brown {
+    background-color: brown;
+}
+.cornflowerblue {
+    background-color: cornflowerblue;
+}
+.forestgreen {
+    background-color: forestgreen;
+}
+.darkmagenta {
+    background-color: darkmagenta;
+}
+.darkgray {
+    background-color: darkgray;
+}
+.slategray {
+    background-color: slategray;
+}
+
+.theme-color {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.set-theme-button.active {
+    border: solid 1px;
+    border-color: black;
+}
+
+.category-theme-text-wrap {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    color: black;
+    font-size: 17px;
+    padding-left: 15px;
+}
+
+.category-theme-text-wrap:hover {
+    cursor: default;
+}
+
+.sort-order-contianer {
+    display: none;
+}
+
+.sort-order-contianer.active {
+    margin-top: 30px;
+    display: flex;
+}
+
+.sort-order-button {
+    height: 35px;
+    border: none;
+    border-radius: 4px;
+    background-color: rgba(250, 250, 250, 255);
+    opacity: 85%;
+}
+
+.fa.fa-long-arrow-up, .fa.fa-long-arrow-down {
+    margin: 0 4px 0 4px;
+    font-size: 17px;
+}
+
+.fa.fa-times {
+    font-size: 17px;
+}
+
+.clear-sort-button {
+    margin-left: 2px;
+    height: 35px;
+    width: 35px;
+    border: none;
+    border-radius: 4px;
+    background-color: rgba(250, 250, 250, 255);
+    opacity: 85%;
+}
+
+.sort-type-text {
+    margin: 0 2px 0 2px;
+    font-size: 15px;
+}
+
+.clear-sort-button:hover, .sort-order-button:hover {
+    opacity: 100%;
+}
+

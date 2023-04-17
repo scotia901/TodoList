@@ -1,73 +1,123 @@
+let categoryBeforeSearch = '';
+let categoryList = [];
+
 window.addEventListener('load', async (event) => {
     event.preventDefault();
     const createCategoryBtn = document.getElementById('create-category-button');
     const deleteCategoryBtn = document.getElementsByClassName('delete-category-button')[0];
+    const sidebarBtn = document.getElementsByClassName('sidebar-btn');
+    const contentBlocker = document.getElementById('content-blocker');
+    const categoryPropertyBtn = document.getElementsByClassName('category-property-btn')[0];
+    const updateCartegoryNameBtn = document.getElementsByClassName('update-category-name-button')[0];
+    const categoryTitleText = document.getElementsByClassName('category-title-text')[0];
+    const tasksOrderBtn = document.getElementsByClassName('update-tasks-sort-button')[0];
+    const sortOrderBtn = document.getElementsByClassName('sort-order-button')[0];
+    const sortTasksBtn = document.querySelectorAll('.tasks-sort-button');
+    const initSortBtn = document.getElementsByClassName('clear-sort-button')[0];
+    const setThemeBtn = document.querySelectorAll('.set-theme-button');
+
+    setThemeBtn.forEach(element => {
+        element.addEventListener('click', async event => {
+            try {
+                event.stopPropagation();
+                const target = event.target;
+                const body = { theme: target.classList[1] };
+                const result = await fetch('/categories/category/theme', {
+                    method: 'PUT',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                if(result.ok) {
+                    document.body.dataset.theme = body.theme;
+                    const activeTheme = document.querySelector('.set-theme-button.active');
+                    if(activeTheme) {
+                        activeTheme.classList.remove('active');
+                    }
+                    target.parentElement.classList.add('active');
+                }
+            } catch (error) {
+                handleError(error);   
+            }
+            
+            // update theme
+            // apply theme
+            // deactive category dropdown menu
+        });
+    });
+    initSortBtn.addEventListener('click', initializeTasksSort);
+    sortOrderBtn.addEventListener('click', setTasksSortOrder);
+    tasksOrderBtn.addEventListener('click', (event) => toggleTasksOrderMenu(event));
+    categoryTitleText.addEventListener('click', renameCategory);
+    updateCartegoryNameBtn.addEventListener('click', renameCategory);
+    categoryPropertyBtn.addEventListener('click', (event) => toggleCategoryDropdownMeun(event));
     createCategoryBtn.addEventListener('click', createCategory);
     deleteCategoryBtn.addEventListener('click', deleteCategory);
-    // const nickname
-    await makeDefaultUserImg(document.getElementById('nickname').innerText);
+    contentBlocker.addEventListener('click', toggleSidebarDisplay);
+    for(const element of sidebarBtn) {
+        element.addEventListener('click', toggleSidebarDisplay);
+    };
+    sortTasksBtn.forEach(element => {
+        element.addEventListener('click', (event) => updateTasksOrderToCategory(event));
+    });
+
     await getCategoriesByUser();
-    await getCommonCategoryTasks();
     await getTasksByUserAndCategory();
-    // await getTasksCount();
-    await renameCategory();
-    await resizeTasks();
-    updateCategoryTitle();
+    await getTasksCountByCategory();
+    await updateContent();
+    resizeWidthTasksAndPostTask();
+    showContent();
 });
 
-async function getCommonCategoryTasks() {
-    const commonCategories = document.getElementById('common-categories').children;
-    
-    for await (const category of commonCategories) {
-        const categoryName = category.firstChild.innerText;
+function toggleTasksOrderMenu(event) {
+    const tasksOrderButton = document.getElementsByClassName('update-tasks-sort-button')[0];
+    event.stopPropagation();
+    tasksOrderButton.classList.toggle('active');
+};
 
-        category.addEventListener('click', async (event) => {
-            await changeCurrentCategory(event, null, categoryName);
-        });
-    }
-}
+function toggleCategoryDropdownMeun() {
+    const categoryPropertyBtn = document.getElementsByClassName('category-property-btn')[0];
+    categoryPropertyBtn.classList.toggle('active');
+};
 
-async function changeCurrentCategory (event, categoryId, categoryName) {
+function showContent() {
+    document.getElementById('tasks').style.display = 'block';
+    document.getElementById('bottom-area').style.display = 'block';
+};
+
+async function changeCurrentCategory (object, categoryId, categoryName) {
+    document.getElementById('tasks').style.display = 'none';
+    document.getElementById('bottom-area').style.display = 'none';
     await updateCurrentCategoryToSession(categoryId, categoryName);
+    await selectCategory(object);
     await getTasksByUserAndCategory();
-    selectCategory(event);
-    updateCategoryTitle();
-    resizeTasks();
-}
+    await updateContent();
+    resizeWidthTasksAndPostTask();
+    showContent();
+};
 
-function sample() {
-    sampleA();
-}
-
-function sampleA () {
-    try {
-        sampleB (a , (err) => {
-            if(err) throw ('Error');
-        });
-    } catch (error) {
-        console.log(error);
-    }
-    function sampleB (int , callback) {
-        if("number"  == typeof int) {
-            callback(err);
-        } else {
-            callback(null);
-        }
-    }
-}
-
-function selectCategory(object) {
+async function selectCategory(object) {
     const activeCategory = document.getElementsByClassName('category active')[0];
     let target = {};
-    if(object instanceof PointerEvent) {
-        target = object.target.tagName == 'SPAN' ? object.target.parentElement : object.target;
-    } else {
-        target = object.parentElement;
-    }
 
+    if(object instanceof Element) {
+        target = object;
+    } else {
+        if(object instanceof PointerEvent || navigator.userAgent.indexOf('Firefox') != -1) {
+            target = object.target.tagName == 'SPAN' ? object.target.parentElement : object.target;
+        } else {
+            if(navigator.userAgent.indexOf('Edg') != -1) {
+                target = object.parentElement;
+            } else {
+                target = object;
+            }
+        }
+    }
     if(activeCategory) activeCategory.classList.remove('active');
     target.classList.add('active');
-}
+};
 
 async function getCategoriesByUser() {
     await fetch('/categories', {
@@ -76,75 +126,132 @@ async function getCategoriesByUser() {
         if(response.ok) {
             const categories = await response.json();
             const personalCategories = document.getElementById('personal-categories');
-            const currentCategory = await fetch('/categories/current').then(async response => { return Promise.resolve(await response.json())});
+            const defaultCategories = document.getElementById('default-categories');
+            const currentCategory = await fetch('/categories/current').then(async response => { return Promise.resolve(await response.json()) });
+            let counter = 0;
 
             for await (const category of categories) {
                 const categoryName = category.name;
                 const categoryId = category.id;
-                const liElemelnt = document.createElement('li');
-                const spanElement = document.createElement('span');
-
-                spanElement.className = 'category-name';
-                spanElement.innerText = categoryName;
-                liElemelnt.className = 'category';
-                liElemelnt.appendChild(spanElement);
-                liElemelnt.addEventListener('click', async (event) => {
+                const categoryWrap = document.createElement('li');
+                const categoryText = document.createElement('span');
+                
+                categoryText.className = 'category-name';
+                categoryText.innerText = categoryName;
+                categoryWrap.className = 'category';
+                categoryWrap.prepend(categoryText);
+                
+                if(currentCategory.id == categoryId && currentCategory.name == categoryName) {
+                    categoryWrap.classList.add('active');
+                }
+                
+                categoryWrap.addEventListener('click', async (event) => {
                     await changeCurrentCategory(event, categoryId, categoryName);
                 });
+                
+                categoryList.push({
+                    id: categoryId,
+                    element: categoryWrap
+                });
 
-                if(currentCategory.id == categoryId && currentCategory.name == categoryName) {
-                    liElemelnt.classList.add('active');
+                if (counter < 4) {
+                    defaultCategories.appendChild(categoryWrap);
                 } else {
-                    switch (currentCategory.name) {
-                        case '오늘 할 일':
-                            document.getElementsByClassName('category-name today')[0].parentElement.classList.add('active');
-                            break;
-                        case '중요':
-                            document.getElementsByClassName('category-name importance')[0].parentElement.classList.add('active');
-                            break;
-                        case '계획된 일정':
-                            document.getElementsByClassName('category-name planed')[0].parentElement.classList.add('active');
-                            break;
-                        case '작업':
-                            document.getElementsByClassName('category-name work')[0].parentElement.classList.add('active');
-                            break;
-                        default:
-                            break;
-                    }
+                    personalCategories.appendChild(categoryWrap);
                 }
-
-                personalCategories.appendChild(liElemelnt);
+                counter++;
             }
         } else {
-            throw new Error('Network response was not ok.');
+            throw response.status;
         }
     }).catch(error => {
-        console.error(error);
+        handleError(error);
     });
 };
 
-window.addEventListener('resize', async (e) => {
-    const contentMarginL = 30;
-    const sidebarWidth = 200;
-    const threshold = 750;
+async function getTasksCountByCategory () {
+    await fetch('/tasks/count').then(async response => {
+        if(response.ok) {
+            const tasksCount = await response.json();
+            const allTasksCountBy = tasksCount.allTasksCountBy;
+            const personalCategoriesCount = tasksCount.personalCategories;
 
-    if (window.innerWidth < threshold) {
-        let sidebar = document.getElementById("sidebar");
-        content.style.marginLeft = contentMarginL + "px";
-        sidebar.style.display = "none"
-    } else {
-        let sidebar = document.getElementById("sidebar");
-        let content = document.getElementById("content");
-        content.style.marginLeft = (sidebarWidth + contentMarginL) + "px";
-        sidebar.style.display = "block";
-    }
-    await resizeTasks();
+            for(const countData of personalCategoriesCount) {
+                const category = categoryList.filter(category => category.id == countData.CategoryId);
+                
+                if(category[0].element.children.length == 2) {
+                    const countElement = category[0].element.lastChild;
+
+                    if(countData.count > 0) {
+                        countElement.innerText = countData.count;
+                    } else {
+                        countElement.remove();
+                    }
+                } else {
+                        const spanElement = document.createElement('span');
+                        spanElement.className = 'category tasks-count';
+                        spanElement.innerText = countData.count;
+                        category[0].element.appendChild(spanElement);
+                }
+            }
+            
+            for(const [key, value] of Object.entries(allTasksCountBy)) {
+                let categoryName = '';
+
+                switch (key) {
+                    case 'today':
+                        categoryName = '오늘 할 일';
+                        break;
+                    case 'importance':
+                        categoryName = '중요';
+                        break;
+                    case 'planed':
+                        categoryName = '계획된 일정';
+                        break;
+                    default:
+                        break;
+                }
+
+                const category = categoryList.filter(category => category.element.parentElement.id === 'default-categories' && category.element.firstChild.innerText === categoryName);
+                if(category[0].element.children.length == 2) {
+                    const countElement = category[0].element.lastChild;
+
+                    if(value > 0) {
+                        countElement.innerText = value;
+                    } else {
+                        countElement.remove();
+                    }
+                } else {
+                    if(value > 0 ) {
+                        const spanElement = document.createElement('span');
+                        spanElement.className = 'category tasks-count';
+                        spanElement.innerText = value;
+                        category[0].element.appendChild(spanElement);
+                    }
+                }
+            }
+        } else {
+            throw response.status;
+        }
+    }).catch(error => {
+        handleError(error);
+    });
+};
+
+window.addEventListener('resize', async () => {
+    resizeWidthTasksAndPostTask();
 });
 
 window.addEventListener('click', (event) => {
-    const target = event.target
-    const activeDropdownMenu = document.getElementsByClassName('show-dropdown-menu-button active')[0];
-    if(activeDropdownMenu != undefined && activeDropdownMenu.contains(event.target) == false) activeDropdownMenu.classList.remove('active');
+    // 드롭다운 메뉴 중복 열림 방지
+    const activeTaskDropdownMenu = document.getElementsByClassName('show-dropdown-menu-button active')[0];
+    const activeCategoryMenu = document.getElementsByClassName('category-property-btn active')[0];
+    const tasksSortBtn = document.getElementsByClassName('update-tasks-sort-button')[0];
+    if(activeTaskDropdownMenu != undefined && activeTaskDropdownMenu.contains(event.target) == false) activeTaskDropdownMenu.classList.remove('active');
+    if(activeCategoryMenu != undefined && activeCategoryMenu.contains(event.target) == false) {
+        activeCategoryMenu.classList.remove('active');
+        tasksSortBtn.classList.remove('active');
+    }
 });
 
 function createCategory() {
@@ -153,7 +260,10 @@ function createCategory() {
     
     fetch('/categories/category', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: JSON.stringify(body)
     }).then(async response => {
         if(response.ok) {
@@ -172,73 +282,92 @@ function createCategory() {
             personalCategories.appendChild(liElemelnt);
             categoryName.value = '';
         } else {
-            throw new Error('Network response was not ok.');
+            throw response.status;
         }
     }).catch(error => {
-        console.error(error);
+        handleError(error);
     });
-}
+};
 
 async function updateCurrentCategoryToSession (categoryId, categoryName) {
-    const body = { categoryId: categoryId, categoryName: categoryName }
+    const body = { categoryId: categoryId, categoryName: categoryName };
+
     await fetch('/categories/current', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+    },
         body: JSON.stringify(body)
     }).then(async response => {
-        if(response.ok) {
-
-        } else {
-            throw new Error('Network response was not ok.');
-        }
-    })
+        if(!response.ok) throw response.status;
+    }).catch(error => {
+        handleError(error);
+    });
 };
 
 async function getTasksByUserAndCategory() {
-    await fetch('/tasks/category', {
-        method: 'GET'
+    await fetch('/tasks', {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
     }).then(async response => {
         if(response.ok) {
             const tasks = await response.json();
             await reformatToHtml(tasks);
         } else {
-            throw new Error('Network response was not ok.');
+            throw response.status;
         }
     }).catch(error => {
-        console.error(error);
+        handleError(error);
     });
-}
+};
 
-async function postTask() {
+function postTask() {
     const taskText = document.getElementById("post-task-msg").value;
-    const body = { taskText: taskText }
-    if (!taskText) { return }
+    const body = { taskText: taskText };
+    const currentCategory = document.getElementsByClassName('category active')[0].firstChild;
 
-    await fetch('/tasks', {
+    if (!taskText) return;
+    if(currentCategory.parentElement.parentElement.id == 'default-categories') {
+        if(currentCategory.innerText == '오늘 할 일' || currentCategory.innerText == '계획된 일정') {
+            const deadline = new Date();
+            deadline.setHours(0, 0, 0, 0);
+            Object.assign(body, { deadline: deadline });
+        }
+    
+        if(currentCategory.innerText == '중요') {
+            const importance = true;
+            Object.assign(body, { importance: importance });
+        }
+    }
+    
+    fetch('/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: JSON.stringify(body)
     }).then(async response => {
         if(response.ok) {
-            const ul = document.getElementById('incomplete-ul');
-            const li = document.createElement('li');
+            const ul = document.getElementsByClassName('incomplete-ul')[0];
             const tasks = await response.json();
 
             ul.prepend(await reformatTask(tasks));
-
             document.getElementById("post-task-msg").value = "";
+            getTasksCountByCategory();
         } else {
-            throw new Error('Network response was not ok.');
+            throw response.status;
         }
     }).catch(error => {
-        console.error(error);
+        handleError(error);
     });
 
-}
+};
 
 function viewUserInfo() {
     location.href = "/users/profile";
-}
+};
 
 function logout() {
     var xhr = new XMLHttpRequest();
@@ -249,22 +378,29 @@ function logout() {
     }
     xhr.open("delete", "/users/logout", true);
     xhr.send();
-}
+};
 
-async function resizeTasks() {
+function resizeWidthTasksAndPostTask() {
     const threshold = 750;
     const margin = 82;
     const marginWithSidebar = 282;
-    const innerWidth = document.body.clientWidth || document.documentElement.clientWidth;
-    if (innerWidth < threshold) {
-        let taskBoxWidth = innerWidth - margin;
-        document.getElementById("post-todo").style.width = taskBoxWidth + "px";
-    } else {
-        let taskBoxWidth = innerWidth - marginWithSidebar;
-        document.getElementById("post-todo").style.width = taskBoxWidth + "px";
-    }
+    const innerWidth = document.documentElement.clientWidth;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const tasks = document.getElementsByClassName('task-lists');
+    const postTask = document.getElementById('post-todo');
 
-}
+    if (innerWidth < threshold) {
+        const width = innerWidth + scrollbarWidth - margin;
+        tasks[0].style.width = width + 'px';
+        tasks[1].style.width = width + 'px';
+        postTask.style.width = width + 'px';
+    } else {
+        const width = innerWidth + scrollbarWidth - marginWithSidebar;
+        tasks[0].style.width = width + 'px';
+        tasks[1].style.width = width + 'px';
+        postTask.style.width = width + 'px';
+    }
+};
 
 async function searchTasks() {
     try {
@@ -272,101 +408,113 @@ async function searchTasks() {
         const activeCurrentCategory = document.getElementsByClassName('category active')[0];
         if(term) { 
             await fetch('/tasks/search/' + term, {
-                method: 'GET'
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             }).then(async response => {
                 if(response.ok) {
                     const tasks = await response.json();
+
+                    document.getElementById('tasks').style.display = 'none';
+                    document.getElementById('bottom-area').style.display = 'none';
+                    document.getElementsByClassName("category-title-text")[0].innerText = "검색 결과";
+                    if(activeCurrentCategory) {
+                        activeCurrentCategory.classList.remove('active');
+                        const category = categoryList.filter(category => category.element == activeCurrentCategory);
+                        categoryBeforeSearch = category[0];
+                        document.body.dataset.theme = 'cornflowerblue';
+                        document.getElementsByClassName('category-property-btn')[0].classList.toggle('hide');
+                    }
+
                     await reformatToHtml(tasks);
-                    document.getElementById("category-title").innerText = "검색 결과";
-                    if(activeCurrentCategory) activeCurrentCategory.classList.remove('active');
+                    resizeWidthTasksAndPostTask();
+                    showContent();
                 } else {
-                    throw new Error('Network response was not ok.');
+                    throw response.status;
                 }
             }).catch(error => {
-                console.error(error);
+                handleError(error);
             });
         } else {
-            await changeCurrentCategory(event, null, categoryName);
+            if(activeCurrentCategory == undefined) {
+                document.getElementsByClassName('category-property-btn')[0].classList.toggle('hide');
+                await changeCurrentCategory(categoryBeforeSearch.element, categoryBeforeSearch.id, categoryBeforeSearch.element.firstChild.innerText);
+            }
         }
     } catch (error) {
         alert(error);
     }
-}
+};
 
 async function deleteCategory() {
     const activeCategory = document.getElementsByClassName('category active')[0];
     if(activeCategory || activeCategory.parentElement.id == 'personal-categories') {
         if(confirm("카테고리를 삭제 하시겠습니까?")) {
             await fetch('/categories/category', {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             }).then(async response => {
                 if(response.ok) {
-                    const workCategory = document.getElementsByClassName('category-name work')[0];
-                    await getTasksByUserAndCategory();
                     activeCategory.remove();
-                    updateCategoryTitle();
-                    activeCurrentCategory(workCategory);
+                    const workCategory = document.getElementsByClassName('category-name work')[0];
+                    await changeCurrentCategory(workCategory, null, '작업');
                 } else {
-                    throw new Error('Network response was not ok.');
+                    throw response.status;
                 }
             }).catch(error => {
-                console.error(error);
+                handleError(error);
             });
         }
     }
-}
+};
 
-async function getCurrentCategory() {
+async function setCurrentCategory() {
     fetch('/api/category/current', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     }).then(response => {
         if(response.ok) {
-            const personalCategories = document.getElementById('personal-categories');
-            const li = document.createElement('li');
-            li.className = 'category';
-            li.innerText = categoryName.value;
-            personalCategories.appendChild(li)
-            categoryName.value = '';
+            // update content title
+            // update sidebar category active
+            // update task sort
         } else {
-            throw new Error('Network response was not ok.')
+            throw response.status;
         }
     }).catch(error => {
-        console.error(error);
+        handleError(error);
     });
+};
 
-    const params = new URL(document.location).searchParams;
-    const id = params.get("id");
-    const bgColor = "rgb(210, 210, 210)";
-    if(!id) {
-        let title = document.getElementById("category-title");
-        Array.from(document.getElementById("common-categories").childNodes).forEach((element) => {
-            if(element.childNodes[0].innerText == title.innerText) {
-                element.style.backgroundColor = bgColor;
-                element.classList.add('active');
-            }
-        });
-    } else {
-        Array.from(document.getElementById("personal-categories").childNodes).forEach((element) => {
-            if(element.childNodes[0].href == document.location.href) {
-                element.style.backgroundColor = bgColor;
-                element.id = seleCat;
-            }
-        });
-    }
-}
-
-async function updateCategoryTitle() {
+async function updateContent() {
     const activeCategory = document.getElementsByClassName('category active')[0];
     const categoryTitle = document.getElementsByClassName('category-title')[0];
+    const currentCategory = await fetch('/categories/current').then(response => response.json());
+    const theme = document.getElementsByClassName('theme-color ' + currentCategory.theme)[0];
+    const previousCategory = document.querySelector('.set-theme-button.active');
 
-    categoryTitle.firstChild.innerText = activeCategory.firstChild.innerText;    
+    if(activeCategory) {
+        categoryTitle.firstChild.innerText = activeCategory.firstChild.innerText;    
+    } else {
+        categoryTitle.firstChild.innerText = categoryBeforeSearch.firstChild.innerText;
+    }
     if(!activeCategory || activeCategory.parentNode.id == 'personal-categories') {
         categoryTitle.classList.add('personal-category');
     } else {
         categoryTitle.classList.remove('personal-category');
     }
-}
+
+    if(previousCategory) previousCategory.classList.remove('active');
+
+    if(!currentCategory.theme) {
+        document.querySelector('.theme-color.cornflowerblue').parentElement.classList.add('active');
+        document.body.dataset.theme = 'cornflowerblue';
+    } else {
+        document.body.dataset.theme = currentCategory.theme;
+        theme.parentElement.classList.add('active');
+    }
+};
 
 async function renameCategory() {
     const categoryTitle = document.getElementsByClassName('category-title')[0];
@@ -378,108 +526,274 @@ async function renameCategory() {
     const font = '30px bold';
     const inputMinWidth = 10;
     
-    categoryTitle.addEventListener('click', async () =>  {
-        if(categoryTitle.classList.contains('personal-category')) {
-            form.setAttribute('action', '#');
-            form.setAttribute('onsubmit', 'return false');
-            form.setAttribute('class', 'category-title personal-category');
-            input.setAttribute('type', 'text');
-            input.setAttribute('id', 'rename-category');
-            input.style.padding = '7px';
-            form.style.padding = '0px';
-            input.style.font = font;
-            input.style.width = Math.min(categoryTitle.getBoundingClientRect().width, categoryTitleText.getBoundingClientRect().width) + inputMinWidth + "px";
-            input.value = categoryTitle.innerText;
-            form.appendChild(input);
-            categoryTitle.replaceWith(form);
-            input.focus();
-            input.select();
+    if(categoryTitle.classList.contains('personal-category')) {
+        form.setAttribute('action', '#');
+        form.setAttribute('onsubmit', 'return false');
+        form.setAttribute('class', 'category-title personal-category');
+        input.setAttribute('type', 'text');
+        input.setAttribute('id', 'rename-category');
+        input.style.padding = '7px';
+        form.style.padding = '0px';
+        input.style.font = font;
+        input.style.width = Math.min(categoryTitle.getBoundingClientRect().width, categoryTitleText.getBoundingClientRect().width) + inputMinWidth + "px";
+        input.value = categoryTitle.innerText;
+        form.appendChild(input);
+        categoryTitle.replaceWith(form);
+        input.focus();
+        input.select();
 
-            input.addEventListener('input', () => {
-                ctx.font = font; // 카테고리 제목 폰트 스타일 참조하도록 만들기
-                input.style.width = Math.max(categoryTitle.getBoundingClientRect().width, ctx.measureText(input.value).width) + inputMinWidth + "px";
-            });
-            input.addEventListener('keydown', (e) => {
-                if(e.key == 'Enter') input.blur();
-                if(e.key == 'Escape') {
-                    input.removeEventListener('focusout', send);
-                    form.replaceWith(categoryTitle);
-                }
-            });
-            input.addEventListener('focusout', send);
-    
-            function send() {
-                if(!input.value || input.value == categoryTitle.firstChild.innerText) {
-                    form.replaceWith(categoryTitle);
-                } else {
-                    const body = { categoryName: input.value }
-                    fetch('/categories/category', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    }).then(response => {
-                        if(response.ok) {
-                            categoryTitle.firstChild.innerText = input.value;
-                            document.getElementsByClassName('category active')[0].firstChild.innerText = input.value;
-                            form.replaceWith(categoryTitle);
-                        } else {
-                            throw new Error('Network response was not ok.');
-                        }
-                    }).catch(error => {
-                        console.error(error);
-                    });
-                }
+        input.addEventListener('input', () => {
+            ctx.font = font;
+            input.style.width = Math.max(categoryTitle.getBoundingClientRect().width, ctx.measureText(input.value).width) + inputMinWidth + "px";
+        });
+        input.addEventListener('keydown', (e) => {
+            if(e.key == 'Enter') input.blur();
+            if(e.key == 'Escape') {
+                input.removeEventListener('focusout', updateCategoryName);
+                form.replaceWith(categoryTitle);
+            }
+        });
+        input.addEventListener('focusout', updateCategoryName);
+
+        function updateCategoryName() {
+            if(!input.value || input.value == categoryTitle.firstChild.innerText) {
+                form.replaceWith(categoryTitle);
+            } else {
+                const body = { categoryName: input.value };
+                fetch('/categories/category', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(body)
+                }).then(response => {
+                    if(response.ok) {
+                        categoryTitle.firstChild.innerText = input.value;
+                        document.getElementsByClassName('category active')[0].firstChild.innerText = input.value;
+                        input.removeEventListener('focusout', updateCategoryName);
+                        form.replaceWith(categoryTitle);
+                    } else {
+                        throw response.status
+                    }
+                }).catch(error => {
+                    handleError(error);
+                });
             }
         }
+    }
+};
+
+function handleError(error) {
+    if(error === 400) {
+        alert('잘못된 요청입니다.');
+    }
+    else if(error === 401) {
+        alert('인증되지 않아 이용할수 없습니다.');
+    }
+    else if(error === 403) {
+        alert('숨겨진 리소스입니다.');
+    }
+    else if(error === 404) {
+        alert('리소스를 찾을수 없습니다.');
+    }
+    else if(error === 500){
+        alert('서버에 요청을 실패하였습니다.');
+    } else {
+        console.error(error);
+    }
+};
+
+function toggleSidebarDisplay() {
+    const sidebar = document.getElementsByClassName('sidebar')[0];
+    if(sidebar) {
+        sidebar.classList.toggle('show');
+    }
+};
+
+function updateTasksOrderToCategory(element) {
+    const sortBtn = element.target.tagName === 'SPAN' ? element.target.parentNode : element.target;
+    const sortType = sortBtn.classList[1].slice(5);
+    const body = { sortType: sortType };
+
+    fetch('/categories/category/sort', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(body)
+    }).then(response => {
+        if(response.ok) {
+            sortTasks(sortType);
+            const sortOrder = document.getElementsByClassName('sort-order-contianer')[0];
+            const tasksOrderButton = document.getElementsByClassName('update-tasks-sort-button')[0];
+
+            sortOrder.classList.add('active');
+            sortOrder.firstChild.dataset.sortType = sortType;
+            sortOrder.firstChild.lastChild.innerText = sortBtn.lastChild.innerText + '순으로' + ' 정렬하기';
+            tasksOrderButton.classList.toggle('active');
+        } else {
+            throw response.status;
+        }
+    }).catch(error => {
+        handleError(error);
     });
-}
+};
 
-async function getTasksCount() {
-    let xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            let response = JSON.parse(this.responseText);
+async function sortTasks(sortType) {
+    const taskLists = document.querySelectorAll('.task-lists');
+    const sortOrder = document.querySelector('.sort-order-button').classList[1];
+    let sortedTasks = new Array();
+
+    taskLists.forEach(element => {
+        switch (sortType) {
+            case 'importance':
+                sortedTasks = Array.from(element.children).sort((a, b) => {
+                    const nameA = a.childNodes[1].innerText.toUpperCase();
+                    const nameB = b.childNodes[1].innerText.toUpperCase();
+                    const importanceA = a.children[2].value;
+                    const importanceB = b.children[2].value;
             
-            response.forEach(element => {
-                try {
-                    var work = document.querySelector('.category-name[href="/tasks/work"]');
-                    var importance = document.querySelector('.category-name[href="/tasks/import"]');
-                    var plan = document.querySelector('.category-name[href="/tasks/plan"]');
-                    var today = document.querySelector('.category-name[href="/tasks/today"]');
-                    var aTag = document.createElement('a');
-                    aTag.className = "tasks-count";
+                    if (importanceA < importanceB) {
+                        if(sortOrder == 'descending') return 1;
+                        return -1;
+                    } else if (importanceA > importanceB) {
+                        if(sortOrder == 'descending') return -1;
+                        return 1;
+                    } else {
+                        if(nameA < nameB) {
+                            return -1;
+                        }
+                        if(nameA > nameB) {
+                            return 1;
+                        }
+                        return 0;
+                    }        
+                });
+                break;
 
-                    if(element.count > 0) {
-                        switch (element.name) {
-                            case work.innerHTML:
-                                aTag.innerHTML = element.count;
-                                work.parentElement.appendChild(aTag);
-                                break;
-                            case importance.innerHTML:
-                                aTag.innerHTML = element.count;
-                                importance.parentElement.appendChild(aTag);
-                                break;
-                            case plan.innerHTML:
-                                aTag.innerHTML = element.count;
-                                plan.parentElement.appendChild(aTag);
-                                break;
-                            case today.innerHTML:
-                                aTag.innerHTML = element.count;
-                                today.parentElement.appendChild(aTag);
-                                break;
-                            default:
-                                aTag.innerHTML = element.count;
-                                document.querySelector(`.category-name[href="/tasks/category?id=${element.name}"]`).parentElement.appendChild(aTag);
-                                break;
-                            }
+            case 'deadline':
+                sortedTasks = Array.from(element.children).sort((elementA, elementB) => {
+                    const nameA = elementA.childNodes[1].innerText.toUpperCase();
+                    const nameB = elementB.childNodes[1].innerText.toUpperCase();
+                    const deadlineA = getDeadlineDateFromTask(elementA);
+                    const deadlineB = getDeadlineDateFromTask(elementB);
+            
+                    if (deadlineA == null && deadlineB != null) {
+                        return 1;
+                    } else if (deadlineA != null && deadlineB == null) {
+                        return -1;
+                    } else if (deadlineA < deadlineB) {
+                        if(sortOrder == 'descending') return 1;
+                        return -1;
+                    } else if (deadlineA > deadlineB) {
+                        if(sortOrder == 'descending') return -1;
+                        return 1;
+                    } else {
+                        if(nameA < nameB) {
+                            return -1;
+                        }
+                        if(nameA > nameB) {
+                            return 1;
+                        }
+                        return 0;
                     }
-                } catch (error) {
-                    
-                }
-            });
+                });
+                break;
+
+            case 'createdAt':
+                sortedTasks = Array.from(element.children).sort((elementA, elementB) => {
+                    const nameA = elementA.childNodes[1].innerText.toUpperCase();
+                    const nameB = elementB.childNodes[1].innerText.toUpperCase();
+            
+                    if (elementA.dataset.createdAt < elementB.dataset.createdAt) {
+                        if(sortOrder == 'descending') return 1;
+                        return -1;
+                    } else if (elementA.dataset.createdAt > elementB.dataset.createdAt) {
+                        if(sortOrder == 'descending') return -1;
+                        return 1;
+                    } else {
+                        if(nameA < nameB) {
+                            return -1;
+                        }
+                        if(nameA > nameB) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                });
+                break;
+
+            case 'name':
+                sortedTasks = Array.from(element.children).sort((elementA, elementB) => {
+                        const nameA = elementA.childNodes[1].innerText.toUpperCase();
+                        const nameB = elementB.childNodes[1].innerText.toUpperCase();
+                        if(nameA < nameB) {
+                            if(sortOrder == 'descending') return 1;
+                            return -1;
+                        }
+                        if(nameA > nameB) {
+                            if(sortOrder == 'descending') return -1;
+                            return 1;
+                        }
+                        return 0;
+                    });
+                break;
+            default:
+                break;
+        }
+
+        element.textContent= '';
+        sortedTasks.map(item => element.appendChild(item));
+    });
+};
+
+function setTasksSortOrder() {
+    const sortOrderBtn = document.getElementsByClassName('sort-order-button')[0];
+    const sortOrderIcon = sortOrderBtn.firstChild;
+    const sortOrderText = sortOrderBtn.classList[1] == 'ascending' ? 'descending' : 'ascending';
+    const sortType = sortOrderBtn.dataset.sortType;
+
+    sortOrderBtn.classList.replace(sortOrderBtn.classList[1], sortOrderText); 
+    sortOrderIcon.className = sortOrderIcon.className == 'fa fa-long-arrow-up' ? 'fa fa-long-arrow-down' : 'fa fa-long-arrow-up';
+    sortTasks(sortType);
+};
+
+function reverseTasksSort(sortType) {
+    const taskLists = document.querySelectorAll('.task-lists');
+    let sortedTasks = new Array();
+
+    taskLists.forEach(element => {
+        switch (sortType) {
+            case 'importance':
+                sortedTasks = Array.from(element.children).sort(reverseImportance);
+                break;
+            case 'deadline':
+                sortedTasks = Array.from(element.children).sort(reverseDeadline);
+                break;
+
+            default:
+                sortedTasks = [].slice.call(element.children).reverse();
+                break;
+        }
+
+        element.textContent= '';
+        sortedTasks.map(item => element.appendChild(item));
+    });
+};
+
+function getDeadlineDateFromTask (element) {
+    if(element.children[5].childNodes.length > 0) {
+        if(element.children[5].firstChild.className == 'deadline-text-wrap') {
+            return element.children[5].firstChild.dataset.deadlineDate;
+        } else {
+            return null;
         }
     }
-    xhr.open("get", "/tasks/count/", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-    xhr.send();
-}
+};
+
+function initializeTasksSort() {
+    const sortOrderContainer = document.getElementsByClassName('sort-order-contianer')[0];
+    sortOrderContainer.classList.remove('active');
+};
