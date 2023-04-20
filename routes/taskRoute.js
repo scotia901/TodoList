@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const Router = express.Router();
 const TaskController = require('../controllers/taskController');
+const authMiddleware = require('../middleware/authMiddleware');
+
+Router.use(authMiddleware.verifyCSRFToken);
 
 Router.get('/', async (req, res, next) => {
     await TaskController.getTasksByUserAndCategory(req, res, next);

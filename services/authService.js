@@ -6,9 +6,19 @@ const AuthModel = require('../models/authModel');
 const { User } = require('../models/todoModel');
 const naverId = process.env.NAVER_CLIENT_ID;
 const kakaoKey = process.env.KAKAO_REST_KEY;
-const naverSecret = process.env.NAVER_CLIENT_SECRET;
+const NAVER_SECRET = process.env.NAVER_CLIENT_SECRET;
+const recaptchaSecret = process.env.RECAPTCHA_SECRET;
 
 module.exports = {
+    verifyRecaptcha: async (recaptcha) => {
+        const params = '?secret=' + recaptchaSecret + '&response=' + recaptcha
+        const response = await fetch('https://www.google.com/recaptcha/api/siteverify' + params, {
+            method: "POST"
+        });
+
+        return await response.json();
+    },
+
     getTokenFromKakao: async (code, state, callbackUri) => {
         const params = new URLSearchParams();
         const api_url = 'https://kauth.kakao.com/oauth/token';
@@ -73,7 +83,7 @@ module.exports = {
 
     getTokenFromNaver: async (code, state, callbackUrl) => {
         const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=authorization_code&client_id='
-                        + naverId + '&client_secret=' + naverSecret + '&redirect_uri=' + callbackUrl + '&code=' + code + '&state=' + state;
+                        + naverId + '&client_secret=' + NAVER_SECRET + '&redirect_uri=' + callbackUrl + '&code=' + code + '&state=' + state;
         const result = await fetch(api_url).then((response) => response.json());
 
         if(result.error) {
@@ -90,7 +100,7 @@ module.exports = {
             Accept: "*/*",
             headers: {
                 'X-Naver-Client-Id':naverId,
-                'X-Naver-Client-Secret': naverSecret,
+                'X-Naver-Client-Secret': NAVER_SECRET,
                 'Authorization': authorization
             }
         }).then((response) => response.json());
@@ -114,7 +124,7 @@ module.exports = {
 
     deleteNaverUserByToken: async (token) => {
         const access_token = token.access_token;
-        const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=delete&service_provider=NAVER&client_id=' + naverId + '&client_secret=' + naverSecret + '&access_token=' + access_token;
+        const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=delete&service_provider=NAVER&client_id=' + naverId + '&client_secret=' + NAVER_SECRET + '&access_token=' + access_token;
         const result = await fetch(api_url);
 
         if(result.error) {
@@ -126,7 +136,7 @@ module.exports = {
 
     refreshNaverToken: async (refreshToken) => {
         const api_url = 'https://nid.naver.com/oauth2.0/token?grant_type=refresh_token&client_id=' + naverId + '&client_secret='
-        + naverSecret + '&refresh_token=' + refreshToken;
+        + NAVER_SECRET + '&refresh_token=' + refreshToken;
         
         const response = await fetch(api_url).then((response) => response);
         return response;
@@ -253,5 +263,5 @@ module.exports = {
         } else {
             return false;
         }
-    }
+    },
 }

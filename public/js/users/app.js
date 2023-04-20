@@ -82,7 +82,7 @@ async function verifyNickname() {
             });
         }
     } else {
-        appendErrorMsg("nickname_error_msg", ERR_NICKNAME_FORMAT_MSG);
+        appendErrorMsg("nickname_error_msg", ERR_INVALIED_NICKNAME_MSG);
     }
 }
 
@@ -277,24 +277,34 @@ function login() {
         const idValue = document.getElementById("id").value;
         const pswdValue = document.getElementById("pswd").value;
         const keepLoginValue = document.getElementById("keep_login").checked;
-        const params = "username=" + idValue + "&password=" + pswdValue + "&keepLogin=" + keepLoginValue;
+        const recaptcha = grecaptcha.getResponse();
+        const params = "username=" + idValue + "&password=" + pswdValue + "&keepLogin=" + keepLoginValue + "&recaptcha=" + recaptcha;
         const xhr = new XMLHttpRequest();
-
-        xhr.onreadystatechange = function() {
-            if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'ok') {
-                location.href = "/";
+        if(recaptcha == '') {
+            document.querySelector('.g-recaptcha').classList.remove('hidden');
+        } else {
+            xhr.onreadystatechange = function() {
+                if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'ok') {
+                    location.href = "/";
+                }
+                if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'notJoinedUser') {
+                    alert("존재하지 않는 유저 입니다.");
+                    grecaptcha.reset();
+                }
+                if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'notMatchedPassword') {
+                    alert("비밀번호가 일치 하지 않습니다.");
+                    grecaptcha.reset();
+                }
+                if(xhr.readyState == 4 && xhr.status == 401) {
+                    alert("reCAPTCHA 인증에 실패하였습니다.");
+                    grecaptcha.reset();
+                }
             }
-            if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'notJoinedUser') {
-                alert("존재하지 않는 유저 입니다.");
-            }
-            if(xhr.readyState == 4 && xhr.status == 200 && xhr.responseText == 'notMatchedPassword') {
-                alert("비밀번호가 일치 하지 않습니다.");
-            }
+            xhr.open("post", "/users/login", true);
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+            xhr.send(params);
         }
-        xhr.open("post", "/users/login", true);
-        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        xhr.send(params);
     }
 }
 

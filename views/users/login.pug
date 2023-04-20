@@ -1,7 +1,11 @@
 extends layout.pug
 
+block append meta
+    meta(name="csrf-token" content=CSRFToken)
+
 block append scripts
     script(type="text/javascript" src="/js/users/app.js")
+    script(src="https://www.google.com/recaptcha/api.js" async defer)
 
 block stylesheet
         link(rel="stylesheet" href="/css/users/style.css")
@@ -21,6 +25,7 @@ block append content
             div(id="keep_login_wrap")
                 input(type="checkbox", name="keep_login", id="keep_login")
                 label(class="keep_login_label" for="keep_login") 로그인 유지하기
+            div(class="g-recaptcha hidden" data-sitekey=recaptchaClientKey)
             div(class="submit_btn_wrap")
                 button(class="submit_btn" id="login_btn" type="submit") 로그인
         a(href=naverApi_url id="naver_login")

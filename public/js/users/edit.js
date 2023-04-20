@@ -1,20 +1,9 @@
-const ERROR_DEL_IMG_MSG = '회원 이미지 삭제에 실패 하였습니다.';
-const ERROR_UPLOAD_IMG_MSG = '알수 없는 오류로 인하여 업로드 실패했습니다.';
-const MISMATCH_CODE_MSG = '인증 코드가 틀렸습니다.';
-const EXFIRE_CODE_MSG = '인증 코드가 만료되었습니다.';
-const ABNORMAL_ACCESS_MSG = '비정상적인 접근입니다.';
-const INVALID_EMAIL_MSG = '잘못된 이메일 주소입니다.';
-const INVALID_PSWD_MSG = '8-20자 영어 대소문자, 특수문자, 숫자를 사용해야 합니다.';
-const INVALIED_NiCKNAME_MSG = '2-10자 영어, 한글을 사용해야 합니다.'
-const MISMATCH_PSWD_MSG = '비밀번호가 일치하지 않습니다.';
-const SEND_AUTH_TO_NEW_EMAIL_MSG = '새로운 이메일로 인증 번호가 전송 되었습니다.';
-const SUCCESS_EMAIL_AUTH_MSG = '이메일 인증이 완료되었습니다.';
-const SUCCESS_NEW_EMAIL_MSG = '새로운 이메일로 변경이 완료되었습니다.';
-const SUCCESS_NEW_PSWD_MSG = '새로운 비밀번호로 변경이 완료되었습니다.';
-const SUCCESS_NEW_NiCKNAME_MSG = '새로운 별명으로 변경이 완료되었습니다.';
-const FAILED_NEW_NiCKNAME_MSG = '새로운 별명으로 변경이 실패되었습니다.';
-const UNAHTHORIZED_NEW_EMAIL_MSG = '새로운 이메일 인증이 완료되지 않았습니다.';
-const IDENTICAL_EMAIL_MSG = '기존 이메일과 동일한 이메일 주소는 사용이 불가능 합니다.';
+const MSG_SEND_AUTH_TO_NEW_EMAIL = '새로운 이메일로 인증 번호가 전송 되었습니다.';
+const MSG_SUCCESS_EMAIL_AUTH = '이메일 인증이 완료되었습니다.';
+const MSG_SUCCESS_NEW_EMAIL = '새로운 이메일로 변경이 완료되었습니다.';
+const MSG_SUCCESS_NEW_PSWD = '새로운 비밀번호로 변경이 완료되었습니다.';
+const MSG_SUCCESS_NEW_NiCKNAME = '새로운 별명으로 변경이 완료되었습니다.';
+
 var isAuthCode = false;
 
 window.addEventListener('load', (event) => {
@@ -31,7 +20,7 @@ window.addEventListener('load', (event) => {
     const newPswd1 = document.getElementById('new_pswd1');
     const newPswd2 = document.getElementById('new_pswd2');
     const updatePswdBtn = document.getElementById('submit_pswd_btn');
-    // const authBtn = document.getElementById('auth-btn');
+    const authBtn = document.getElementById('auth-btn');
     const backBtn = document.getElementById('back_btn');
     const deleteUserBtn = document.getElementById('delete-user-btn');
 
@@ -50,26 +39,8 @@ window.addEventListener('load', (event) => {
     if (newPswd2) newPswd2.addEventListener('change', verifyNewPswd2);
     if (updatePswdBtn) updatePswdBtn.addEventListener('click', updatePswd);
     if (deleteUserBtn) deleteUserBtn.addEventListener('click', deleteUser);
-    // if(authBtn) authBtn.addEventListener('click', authenticateCode);
+    if (authBtn) authBtn.addEventListener('click', authenticateCode);
 });
-
-function deleteUser() {
-    const isConfirm = confirm('정말로 탈퇴 하시겠습니까?');
-    
-    if(isConfirm) {
-        fetch('/users/delete/user',{
-            method: 'DELETE'
-        }).then(response => {
-            if(response.ok) {
-                alert('회원 탈퇴에 성공하였습니다.');
-                window.location.href = '/users/login';
-            }
-        }).catch(error => {
-            alert('알수 없는 오류로 인하여 탈퇴에 실패하였습니다.');
-            console.error(error);
-        });
-    }
-}
 
 function verifyCurrentEmail() {
     const emailValue = document.getElementById('current_email').value;
@@ -78,7 +49,7 @@ function verifyCurrentEmail() {
     if(emailFormat.test(emailValue)) {
         removeErrorMsg('current_email_error_msg');
     } else {
-        appendErrorMsg('current_email_error_msg', INVALID_EMAIL_MSG);
+        appendErrorMsg('current_email_error_msg', ERR_INVALID_EMAIL_MSG);
     }
 }
 
@@ -90,10 +61,10 @@ async function verifyNewEmail() {
         if(currentEmailValue != newEmailValue) {
             removeErrorMsg('new_email_error_msg');
         } else {
-            appendErrorMsg('new_email_error_msg', IDENTICAL_EMAIL_MSG);
+            appendErrorMsg('new_email_error_msg', ERR_IDENTICAL_EMAIL_MSG);
         }
     } else {
-        appendErrorMsg('new_email_error_msg', INVALID_EMAIL_MSG);
+        appendErrorMsg('new_email_error_msg', ERR_INVALID_EMAIL_MSG);
     }
 }
 
@@ -104,8 +75,7 @@ function verifyCurrentPswd() {
     if(pswdFormat.test(pswd1Value)) {
         removeErrorMsg('current_pswd_error_msg');
     } else {
-        const errorMsg = INVALID_PSWD_MSG;
-        appendErrorMsg('current_pswd_error_msg', errorMsg);
+        appendErrorMsg('current_pswd_error_msg', ERR_INVALID_PSWD_MSG);
     }
 }
 
@@ -116,8 +86,7 @@ function verifyNewPswd1() {
     if(pswdFormat.test(pswd1Value)) {
         removeErrorMsg('new_pswd1_error_msg');
     } else {
-        const errorMsg = INVALID_PSWD_MSG;
-        appendErrorMsg('new_pswd1_error_msg', errorMsg);
+        appendErrorMsg('new_pswd1_error_msg', ERR_INVALID_PSWD_MSG);
     }
 }
 
@@ -128,148 +97,176 @@ function verifyNewPswd2() {
     if(pswd1Value == pswd2Value) {
         removeErrorMsg('new_pswd2_error_msg');
     } else {
-        const errorMsg = MISMATCH_PSWD_MSG;
-        appendErrorMsg('new_pswd2_error_msg', errorMsg);
+        appendErrorMsg('new_pswd2_error_msg', ERR_MISMATCH_PSWD_MSG);
     }
 }
 
+function deleteUser() {
+    try {
+        const isConfirm = confirm('정말로 탈퇴 하시겠습니까?');
+        
+        if(isConfirm) {
+            fetch('/users/delete/user',{
+                method: 'DELETE'
+            }).then(response => {
+                if(response.ok) {
+                    alert('회원 탈퇴에 성공하였습니다.');
+                    window.location.href = '/users/login';
+                }
+            });
+        }
+    } catch (error) {
+        handleError(error);
+    }
+}
 
 async function sendCode() {
-    const sendCodeBtn = document.getElementById('send_code_btn');
-    verifyNewEmail();
-
-    if (document.getElementsByClassName('error-msg').length == 0) {
-        const params = 'newEmail=' + document.getElementById('new_email').value + '&currentEmail=' + document.getElementById('current_email').value;
-        const xhr = new XMLHttpRequest();
-
-        xhr.onreadystatechange = function() {
-            if(this.readyState == 4) {
-                if(this.status == 200) {
-                    document.body.style.cursor = 'default';
-                    const authCodeArea = document.getElementById('auth_code_row');
-                    const authCodeInput = document.getElementById('auth_code');
+    try {
+        const sendCodeBtn = document.getElementById('send_code_btn');
+        verifyNewEmail();
     
-                    alert(SEND_AUTH_TO_NEW_EMAIL_MSG);
-                    sendCodeBtn.disabled = false;
-                    authCodeInput.value = ''
-                    authCodeArea.style.display = 'block';
-                    sendCodeBtn.classList.remove('waiting_send');
+        if (document.getElementsByClassName('error-msg').length == 0) {
+            const params = 'newEmail=' + document.getElementById('new_email').value + '&currentEmail=' + document.getElementById('current_email').value;
+            const xhr = new XMLHttpRequest();
+    
+            xhr.onreadystatechange = function() {
+                if(this.readyState == 4) {
+                    if(this.status == 200) {
+                        const authCodeArea = document.getElementById('auth_code_row');
+                        const authCodeInput = document.getElementById('auth_code');
+        
+                        alert(MSG_SEND_AUTH_TO_NEW_EMAIL);
+                        sendCodeBtn.disabled = false;
+                        authCodeInput.value = ''
+                        authCodeArea.style.display = 'block';
+                        sendCodeBtn.classList.remove('waiting_send');
+                    }
+                    if(this.status == 500 || this.status == 401) {
+                        sendCodeBtn.disabled = false;
+                        sendCodeBtn.classList.remove('waiting_send');
+                        throw this.status;
+                    }
                 }
-                if(this.status == 500 || this.status == 401) {
-                    document.body.style.cursor = 'default';
-                    sendCodeBtn.disabled = false;
-                    sendCodeBtn.classList.remove('waiting_send');
-                    alert('error');
+    
+                if(this.readyState >= 1 && this.readyState <= 3) {
+                    sendCodeBtn.disabled = true;
+                    sendCodeBtn.classList.add('waiting_send');
                 }
             }
-
-            if(this.readyState >= 1 && this.readyState <= 3) {
-                sendCodeBtn.disabled = true;
-                sendCodeBtn.classList.add('waiting_send');
-            }
+    
+            xhr.open('post', '/auth/code', true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+            xhr.send(params);
+        } else {
+            sendCodeBtn.disabled = false;
+            sendCodeBtn.classList.remove('waiting_send');
         }
-
-        xhr.open('post', '/auth/code', true);
-        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send(params);
-    } else {
-        sendCodeBtn.disabled = false;
-        sendCodeBtn.classList.remove('waiting_send');
+    } catch (error) {
+        handleError(error);
     }
 }
 
 async function authenticateCode() {
-    if (document.getElementsByClassName('error-msg').length == 0) {
-        const query = 'email=' + document.getElementById('new_email').value + 
-                     '&code=' + document.getElementById('auth_code').value;
-
-        await fetch('/auth/code?' + query).then(response => {
-            if(response.ok) {
-                const auth = document.getElementById('auth_code');
-                const currentEmail = document.getElementById('current_email');
-                const newEmail = document.getElementById('new_email');
-                const sendCodeBtn = document.getElementById('send_code_btn');
-                const authBtn = document.getElementById('auth_btn');
-                const boxBgColor = 'rgb(230,230,230)';
-                const boxFontColor = 'rgb(0,0,0)';
-                
-                alert(SUCCESS_EMAIL_AUTH_MSG);
-                isAuthCode = true;
-                sendCodeBtn.disabled = true;
-                sendCodeBtn.style.background = boxBgColor;
-                sendCodeBtn.style.pointerEvents = 'none';
-                authBtn.disabled = true;
-                authBtn.style.background = boxBgColor;
-                authBtn.style.pointerEvents = 'none';
-                currentEmail.disabled = true;
-                currentEmail.style.backgroundColor = boxBgColor;
-                currentEmail.style.color = boxFontColor;
-                newEmail.disabled = true;
-                newEmail.style.backgroundColor = boxBgColor;
-                newEmail.style.color = boxFontColor;
-                auth.disabled = true;
-                auth.style.backgroundColor = boxBgColor;
-                auth.style.color = boxFontColor;
-            }
-        }).catch(error => {
-            console.error(error);
-        });
+    try {
+        if (document.getElementsByClassName('error-msg').length == 0) {
+            const query = 'email=' + document.getElementById('new_email').value + 
+                         '&code=' + document.getElementById('auth_code').value;
+    
+            await fetch('/auth/code?' + query).then(response => {
+                if(response.ok) {
+                    const auth = document.getElementById('auth_code');
+                    const currentEmail = document.getElementById('current_email');
+                    const newEmail = document.getElementById('new_email');
+                    const sendCodeBtn = document.getElementById('send_code_btn');
+                    const authBtn = document.getElementById('auth_btn');
+                    const boxBgColor = 'rgb(230,230,230)';
+                    const boxFontColor = 'rgb(0,0,0)';
+                    
+                    alert(MSG_SUCCESS_EMAIL_AUTH);
+                    isAuthCode = true;
+                    sendCodeBtn.disabled = true;
+                    sendCodeBtn.style.background = boxBgColor;
+                    sendCodeBtn.style.pointerEvents = 'none';
+                    authBtn.disabled = true;
+                    authBtn.style.background = boxBgColor;
+                    authBtn.style.pointerEvents = 'none';
+                    currentEmail.disabled = true;
+                    currentEmail.style.backgroundColor = boxBgColor;
+                    currentEmail.style.color = boxFontColor;
+                    newEmail.disabled = true;
+                    newEmail.style.backgroundColor = boxBgColor;
+                    newEmail.style.color = boxFontColor;
+                    auth.disabled = true;
+                    auth.style.backgroundColor = boxBgColor;
+                    auth.style.color = boxFontColor;
+                }
+            });
+        }
+    } catch (error) {
+        handleError(error);
     }
 }
 
 function updateEmail() {
-    verifyCurrentEmail();
-    verifyNewEmail();
-
-    if(document.getElementsByClassName('error_msg').length == 0) {
-        if(isAuthCode) {
-            const xhr = new XMLHttpRequest();
-            const params = 'email=' + document.getElementById('new_email').value;
-            xhr.onreadystatechange = function() {
-                if(this.readyState == 4 && this.status == 200) {
-                    alert(SUCCESS_NEW_EMAIL_MSG);
-                    location.href = '/users/profile';
+    try {
+        verifyCurrentEmail();
+        verifyNewEmail();
+    
+        if(document.getElementsByClassName('error_msg').length == 0) {
+            if(isAuthCode) {
+                const xhr = new XMLHttpRequest();
+                const params = 'email=' + document.getElementById('new_email').value;
+                xhr.onreadystatechange = function() {
+                    if(this.readyState == 4 && this.status == 200) {
+                        alert(MSG_SUCCESS_NEW_EMAIL);
+                        location.href = '/users/profile';
+                    }
+                    if(this.readyState == 4 && this.status == 400) {
+                        if(this.responseText == 'not match code') throw ERR_MISMATCH_AUTHCODE_MSG;
+                        if(this.responseText == 'abnormal access') throw this.status;
+                    }
                 }
-                if(this.readyState == 4 && this.status == 400) {
-                    if(this.responseText == 'not match code') alert(MISMATCH_CODE_MSG);
-                    if(this.responseText == 'abnormal access') alert(ABNORMAL_ACCESS_MSG);
-                }
+                xhr.open('put', '/users/update/email', true);
+                xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+                xhr.send(params);
+            } else {
+                throw ERR_UNAHTHORIZED_NEW_EMAIL_MSG;
             }
-            xhr.open('put', '/users/update/email', true);
-            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.send(params);
-        } else {
-            alert(UNAHTHORIZED_NEW_EMAIL_MSG);
         }
+    } catch (error) {
+     handleError(error);   
     }
-
 }
 
 function updatePswd() {
-    verifyCurrentPswd();
-    verifyNewPswd1();
-    verifyNewPswd2();
-
-    if(document.getElementsByClassName('error_msg').length == 0) {
-        const params = 'currentPswd=' + document.getElementById('current_pswd').value + 
-                     '&newPswd=' + document.getElementById('new_pswd1').value;
-        const xhr = new XMLHttpRequest();
-        
-        xhr.onreadystatechange = function() {
-            if(this.readyState == 4 && this.status == 200) {
-                alert(SUCCESS_NEW_PSWD_MSG);
-                getProfilePage();
+    try {
+        verifyCurrentPswd();
+        verifyNewPswd1();
+        verifyNewPswd2();
+    
+        if(document.getElementsByClassName('error_msg').length == 0) {
+            const params = 'currentPswd=' + document.getElementById('current_pswd').value + 
+                         '&newPswd=' + document.getElementById('new_pswd1').value;
+            const xhr = new XMLHttpRequest();
+            
+            xhr.onreadystatechange = function() {
+                if(this.readyState == 4 && this.status == 200) {
+                    alert(MSG_SUCCESS_NEW_PSWD);
+                    getProfilePage();
+                }
+                if(this.readyState == 4 && this.status == 400) {
+                    throw this.status;
+                }
+                if(this.readyState == 4 && this.status == 401) {
+                    appendErrorMsg('current_pswd_error_msg', ERR_MISMATCH_PSWD_MSG);
+                }
             }
-            if(this.readyState == 4 && this.status == 400) {
-                alert('error');
-            }
-            if(this.readyState == 4 && this.status == 401) {
-                appendErrorMsg('current_pswd_error_msg', '기존 비밀번호가 일치하지 않습니다.');
-            }
+            xhr.open('put', '/users/update/pswd', true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+            xhr.send(params);
         }
-        xhr.open('put', '/users/update/pswd', true);
-        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send(params);
+    } catch (error) {
+        handleError(error);        
     }
 }
 
@@ -331,69 +328,95 @@ function changeNickname() {
     });
 
     async function send() {
-        if(!nicknameInput.value || nicknameInput.value == nickname.innerText) {
-            form.replaceWith(nickname);
-            nicknameArea.appendChild(editNicknameBtn);
-        } else {
-            const nicknameFormat = /^[\w|가-힣]{2,10}$/
-            if (nicknameFormat.test(nicknameInput.value) == true) {
-                const params = 'nickname=' + nicknameInput.value;
-                const xhr = new XMLHttpRequest();
-
-                xhr.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        alert(SUCCESS_NEW_NiCKNAME_MSG);
-                        nickname.innerText = nicknameInput.value;
-                        form.replaceWith(nickname);
-                        nicknameArea.appendChild(editNicknameBtn);
-                        if(document.getElementsByClassName('profile-image has-image-file')[0] == undefined) {
-                            createDefaultProfileImg();
-                        }
-                    } else if (this.readyState == 4 && this.status == 400) {
-                        alert(FAILED_NEW_NiCKNAME_MSG);
-                        form.replaceWith(nickname);
-                        nicknameArea.appendChild(editNicknameBtn);
-                    }
-                }
-                xhr.open('put', '/users/profile/edit/nickname', true);
-                xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
-                xhr.send(params);
+        try {
+            
+            if(!nicknameInput.value || nicknameInput.value == nickname.innerText) {
+                form.replaceWith(nickname);
+                nicknameArea.appendChild(editNicknameBtn);
             } else {
-                alert(INVALIED_NiCKNAME_MSG);
+                const nicknameFormat = /^[\w|가-힣]{2,10}$/
+                if (nicknameFormat.test(nicknameInput.value) == true) {
+                    const params = 'nickname=' + nicknameInput.value;
+                    const xhr = new XMLHttpRequest();
+    
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            alert(MSG_SUCCESS_NEW_NiCKNAME);
+                            nickname.innerText = nicknameInput.value;
+                            form.replaceWith(nickname);
+                            nicknameArea.appendChild(editNicknameBtn);
+                            if(document.getElementsByClassName('profile-image has-image-file')[0] == undefined) {
+                                createDefaultProfileImg();
+                            }
+                        } else if (this.readyState == 4 && this.status == 400) {
+                            alert(ERR_FAILED_NEW_NiCKNAME_MSG);
+                            form.replaceWith(nickname);
+                            nicknameArea.appendChild(editNicknameBtn);
+                        }
+                    }
+                    xhr.open('put', '/users/profile/edit/nickname', true);
+                    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+                    xhr.send(params);
+                } else {
+                    throw ERR_INVALIED_NICKNAME_MSG;
+                }
             }
+        } catch (error) {
+            handleError(error);
         }
     }
 }
 
 async function resetPassword() {
-    const body = {password: password};
-
-    await fetch('/users/find/pswd/reset', {
-        method: 'PUT',
-        body: JSON.stringify(body)
-    }).then(response => {
-        if(response.ok) {
-            alert('비밀번호 변경이 완료되었습니다.');
-            window.location.href = '/';
-        }
-    }).catch(error => {
-        console.error(error);
-    })
+    try {
+        const body = {password: password};
+    
+        await fetch('/users/find/pswd/reset', {
+            method: 'PUT',
+            body: JSON.stringify(body)
+        }).then(response => {
+            if(response.ok) {
+                alert(MSG_SUCCESS_NEW_PSWD);
+                window.location.href = '/';
+            }
+        });
+    } catch (error) {
+        handleError(error);
+    }
 }
 
 async function deleteSnsUser() {
-    const answerToDeleteSnsUser = confirm('SNS 계정 연동을 해제 하시겠습니까?');
+    try {
+        const answerToDeleteSnsUser = confirm('SNS 계정 연동을 해제 하시겠습니까?');
     
-    if(answerToDeleteSnsUser === true) {
-        await fetch('/users/delete/snsuser', {
-            method: 'DELETE'
-        }).then(async response => {
-            if(response.ok) {
-                const url = await response.text();
-                window.location.href = url;
+        if(answerToDeleteSnsUser === true) {
+            const xhr = new XMLHttpRequest();
+    
+            xhr.onreadystatechange = async function() {
+                if(this.readyState == 4 && this.status == 200) {
+                    const url = await response.text();
+                    window.location.href = url;
+                }
             }
-        }).catch(error => {
-            alert(error);
-        });
+            xhr.open('delete', '/users/delete/snsuser', true);
+        }
+    } catch (error) {
+        handleError(error);
     }
 }
+
+// CSRF 방지를 위한 XMLHttpRequest의 setRequestHeader 오버라이딩
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+function csrfSafeMethod(method) {
+    return (/^(GET|HEAD|OPTIONS)$/.test(method));
+}
+const o = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function() {
+    const res = o.apply(this, arguments);
+    const err = new Error();
+    if (!csrfSafeMethod(arguments[0])) {
+        this.setRequestHeader('csrf-token', csrfToken);
+        this.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    }
+    return res;
+};

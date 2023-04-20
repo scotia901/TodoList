@@ -6,17 +6,6 @@ const usernameFormat = /^[\w|가-힣]{2,10}$/;
 const authCodeFormat = /\b\d{5}\b/;
 
 module.exports = {
-    preventBruteforce: (req, res, next) => {
-        if (req.session.tryLogin > 5) {
-            res.status(200).send('Login try 5');
-        } else if (req.session.isLogined == true) {
-            next();
-        } else {
-            req.session.tryLogin += 1;
-            next();
-        }
-    },
-
     verifyPswdFormat: (req, res, next) => {
         try {
             if (pswdFormat.test(req.body.password)) {
@@ -139,21 +128,6 @@ module.exports = {
             req.session.save();
             next();
         }
-    },
-
-    verifyCategoryData: (req, res, next) => {
-        const categoryName = req.body.categoryName;
-        const categoryId = req.body.categoryId;
-
-        if (typeof categoryName != 'string' && typeof categoryId != 'number' || categoryId != null) {
-            next(new Error('Bad Request'));
-        }
-        if (categoryId == null) {
-            if (categoryName == '작업' && categoryName == '중요' && categoryName == '오늘 할 일' && categoryName == '계획된 일정') {
-                next();
-            }
-        }
-        // checkCategoryData function store in AuthService.
     }
 }
 
@@ -174,7 +148,7 @@ async function checkEmailMatch(userId, email, callback) {
     }).catch(error => {
         error.status = 500;
         callback(error);
-    })
+    });
 }
 
 async function isUserJoined(userData) {

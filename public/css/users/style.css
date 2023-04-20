@@ -67,7 +67,7 @@ input:focus {
 }
 
 .submit_btn_wrap {
-    margin: 40px 0px 5px 0px;
+    margin: 20px 0px 5px 0px;
     height: 40px;
 }
 
@@ -296,4 +296,12 @@ span {
 
 #auth_code_row {
     margin-bottom: 130px;
+}
+
+.g-recaptcha {
+    margin-top: 20px;
+}
+
+.g-recaptcha.hidden {
+    display: none;
 }

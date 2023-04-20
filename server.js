@@ -1,5 +1,3 @@
-const authModel = require('./models/authModel');
-
 async function main () {
     require('dotenv').config();
     const path = require('path');
@@ -11,6 +9,7 @@ async function main () {
     const session = require('express-session');
     const MySQLStore = require('express-mysql-session')(session);
     const cookieParser = require('cookie-parser');
+    const helmet = require('helmet');
     const sessDbOptions = {
         host: process.env.MYSQL_HOST,
         port: process.env.MYSQL_PORT,
@@ -21,7 +20,7 @@ async function main () {
         connectionLimit: process.env.MYSQL_CONN_LIMIT,
         queueLimit: process.env.MYSQL_QUEUE_LIMIT
     };
-    const HALF_HOUR = 1800000;
+    const HALF_HOUR = 30 * 60 * 1000;
     const connSessDb = mysql.createPool(sessDbOptions);
     const sessionStore = new MySQLStore({}, connSessDb);
     const sessOptions = {
@@ -30,10 +29,11 @@ async function main () {
         store: sessionStore,
         rolling: true,
         saveUninitialized: false,
-        cookie: {   maxAge: HALF_HOUR,
-                    expries: new Date(Date.now() + HALF_HOUR),
-                    sameSite: process.env.SESSION_SAMESITE
-                }
+        cookie: {
+            maxAge: HALF_HOUR,
+            expries: new Date(Date.now() + HALF_HOUR),
+            sameSite: process.env.SESSION_SAMESITE
+        }
     };
     const categoryRoutes = require('./routes/categoryRoute');
     const taskRoutes = require('./routes/taskRoute');
@@ -42,33 +42,36 @@ async function main () {
 
     app.set('view engine', 'pug');
     app.set('views', [path.join(__dirname, 'views'), path.join(__dirname, 'views/users')]);
+    app.use(helmet.xssFilter());
     app.use(session(sessOptions));
     app.use(express.static('public'));
     app.use(express.static('utilities'));
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
     app.use(express.json());
+    app.use(AuthMiddleware.refreshSession);
+    app.use(AuthMiddleware.isLogined);
+    app.use(AuthMiddleware.verifyCSRFToken);
 
     app.get('/', async (req, res, next) => {
         if(req.session.user) {
             res.render('tasks', {
                 "pageTitle": process.env.PAGE_TITLE,
                 "nickname": req.session.user.nickname,
-                "profileImg": req.session.user.profileImg
+                "profileImg": req.session.user.profileImg,
+                "CSRFToken": req.session.auth.CSRFToken
             });
         } else {
             res.redirect('/users/login');
         }
     });
 
-    app.use(AuthMiddleware.isLogined);
-    app.use(AuthMiddleware.refreshSessionData);
     app.use('/users', userRoutes);
     app.use('/categories', categoryRoutes);
     app.use('/tasks', taskRoutes);
     app.use('/auth', authRoutes);
     app.listen(process.env.SERVER_PORT, () => {
-        let appOpenTime = new Date();
+        const appOpenTime = new Date();
         console.log(`App open on ${appOpenTime.toLocaleString()} and listening on Port:${process.env.SERVER_PORT}`);
     });
     

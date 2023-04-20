@@ -30,11 +30,11 @@ Router.get('/delete/:snstype', (req, res, next) => {
     UserController.deleteUserById(req, res, next);
 });
 
-Router.post('/login', ValidataionMiddleware.verifyLogin, (req, res, next) => {
+Router.post('/login', ValidataionMiddleware.verifyLogin, AuthMiddleware.verifyRecaptcha, (req, res, next) => {
     UserController.getUserByUsernameAndPassword(req, res, next);
 });
 
-Router.delete('/logout', (req, res, next) => {
+Router.get('/logout', (req, res, next) => {
     UserController.logoutUser(req, res, next);
 });
 

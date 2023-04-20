@@ -8,17 +8,20 @@ module.exports = {
         try {
             const kakaoKey = process.env.KAKAO_REST_KEY;
             const naverClientId = process.env.NAVER_CLIENT_ID;
-            const callbackUrl = encodeURI(process.env.AUTH_CALLBACK_URI);
-            const state = encodeURI(await cryptoUtility.createRandomHash(128, 'base64'));
+            const recaptchaClient = process.env.RECAPTCHA_CLIENT;
+            const callbackUrl = encodeURIComponent(process.env.AUTH_CALLBACK_URI);
+            const token = req.session.auth.CSRFToken;
             const naverApi_url = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=" +
-                naverClientId + '&redirect_uri=' + callbackUrl + "login/naver" + '&state=' + state;
+                naverClientId + '&redirect_uri=' + callbackUrl + "login/naver" + '&state=' + token;
             const kakaoApi_url = "https://kauth.kakao.com/oauth/authorize?&response_type=code&client_id=" +
-                kakaoKey + '&redirect_uri=' + callbackUrl + "login/kakao" + '&state=' + state;
+                kakaoKey + '&redirect_uri=' + callbackUrl + "login/kakao" + '&state=' + token;
 
+            req.session.auth = { CSRFToken: token };
             res.render('users/login', {
                 "pageTitle": process.env.PAGE_TITLE,
                 "naverApi_url": naverApi_url,
-                "kakaoApi_url": kakaoApi_url
+                "kakaoApi_url": kakaoApi_url,
+                "recaptchaClientKey": recaptchaClient,
             });
         } catch (error) {
             next(error);
@@ -67,6 +70,7 @@ module.exports = {
         try {
             const username = req.body.username;
             const password = req.body.password;
+            const keepLogin = req.body.keepLogin;
             const user = await userService.getUserbyUsernameAndPassword(username, password);
 
             if (user == 'Not found user') {
@@ -74,10 +78,19 @@ module.exports = {
             } else if (user == 'Not match password') {
                 res.status(200).send('notMatchedPassword');
             } else {
-                req.session.user = {
-                    id: user.id,
-                    nickname: user.nickname,
-                    profileImg: user.profileImg
+                if (keepLogin) {
+                    req.session.user = {
+                        iskeepLogin: true,
+                        id: user.id,
+                        nickname: user.nickname,
+                        profileImg: user.profileImg
+                    }
+                } else {
+                    req.session.user = {
+                        id: user.id,
+                        nickname: user.nickname,
+                        profileImg: user.profileImg
+                    }
                 }
                 res.status(200).send('ok');
             }
@@ -160,16 +173,20 @@ module.exports = {
     loginSnsUser: async (req, res, next) => {
         try {
             const code = req.query.code;
-            const state = req.query.state;
+            const token = req.query.state;
             const snsType = req.path.slice(7);
-            const snsUserData = await userService.getUserFromSns(code, state, snsType);
+
+            console.log(req.session.auth.CSRFToken)
+            console.log(token)
+
+            if(req.session.auth.CSRFToken != token) throw 'Bad request';
+            const snsUserData = await userService.getUserFromSns(code, token, snsType);
 
             if (!await userService.isUserExistInDb(snsUserData.user)) {
                 await userService.createSnsUser(snsUserData.user);
             }
-
+            
             const user = await userService.getUserBySnsId(snsUserData.user.snsId, snsUserData.user.snsType);
-
             if (user) {
                 req.session.user = {
                     id: user.id,
@@ -192,13 +209,18 @@ module.exports = {
             const userId = req.session.user.id;
             const snsType = req.session.user.snsType;
             const code = req.query.code;
-            const state = req.query.state;
+            const token = req.query.state;
+            
+            if(req.session.auth.CSRFToken == token) {
+                await userService.deleteSnsUser(userId, snsType, code, token);
+                req.session.destroy((error) => {
+                    if (error) throw error;
+                    res.redirect('/');
+                });
+            } else {
+                throw 'Bad Request';
+            }
 
-            await userService.deleteSnsUser(userId, snsType, code, state);
-            req.session.destroy((error) => {
-                if (error) throw error;
-                res.redirect('/');
-            });
         } catch (error) {
             next(error);
         }
@@ -221,12 +243,13 @@ module.exports = {
             const kakaoKey = process.env.KAKAO_REST_KEY;
             const naverClientId = process.env.NAVER_CLIENT_ID;
             const callbackUrl = encodeURI(process.env.AUTH_CALLBACK_URI);
-            const state = encodeURI(await cryptoUtility.createRandomHash(128, 'base64'));
+            const state = encodeURI(await cryptoUtility.createRandomHash(128, 'hex'));
             const naverApi_url = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=" +
                 naverClientId + '&redirect_uri=' + callbackUrl + "delete/naver" + '&state=' + state;
             const kakaoApi_url = "https://kauth.kakao.com/oauth/authorize?&response_type=code&client_id=" +
                 kakaoKey + '&redirect_uri=' + callbackUrl + "delete/kakao" + '&state=' + state;
 
+            req.session.auth = { sns: { state: state }}
             if (snsType == 'kakao') {
                 res.status(200).send(kakaoApi_url);
             } else if (snsType == 'naver') {
@@ -242,16 +265,19 @@ module.exports = {
     getUserProfileByUserId: async (req, res, next) => {
         try {
             const userId = req.session.user.id;
-
             const userData = await userService.getUserProfileByUserId(userId);
             if (userData) {
+                req.session.auth = {
+                    CSRFToken: await cryptoUtility.createRandomHash(64, 'base64')
+                }
                 res.render('users/profile', {
                     "pageTitle": process.env.PAGE_TITLE,
                     "username": userData.name,
                     "profileImg": userData.profileImg,
                     "nickname": userData.nickname,
                     "email": userData.email,
-                    "snsType": userData.snsType
+                    "snsType": userData.snsType,
+                    "CSRFToken": req.session.auth.CSRFToken
                 });
             } else {
                 throw 'Not found';

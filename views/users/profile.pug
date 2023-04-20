@@ -1,5 +1,8 @@
 extends layout.pug
 
+block append meta
+    meta(name="csrf-token" content=CSRFToken)
+
 block append scripts
     script(type="text/javascript" src="/js/users/edit.js")
     script(type="text/javascript" src="/js/users/image.js")

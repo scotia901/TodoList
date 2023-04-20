@@ -1,6 +1,18 @@
 let categoryBeforeSearch = '';
 let categoryList = [];
 
+async function customFetch(url, options) {
+    const csrf_token = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+    const defaultHeaders = {
+        'csrf-token': csrf_token,
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    const headers = Object.assign({}, defaultHeaders, options.headers);
+    return fetch(url, Object.assign({}, options, {
+        headers
+    }));
+}
+
 window.addEventListener('load', async (event) => {
     event.preventDefault();
     const createCategoryBtn = document.getElementById('create-category-button');
@@ -21,27 +33,28 @@ window.addEventListener('load', async (event) => {
             try {
                 event.stopPropagation();
                 const target = event.target;
-                const body = { theme: target.classList[1] };
-                const result = await fetch('/categories/category/theme', {
+                const body = {
+                    theme: target.classList[1]
+                };
+                const result = await customFetch('/categories/category/theme', {
                     method: 'PUT',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(body)
                 });
-                if(result.ok) {
+                if (result.ok) {
                     document.body.dataset.theme = body.theme;
                     const activeTheme = document.querySelector('.set-theme-button.active');
-                    if(activeTheme) {
+                    if (activeTheme) {
                         activeTheme.classList.remove('active');
                     }
                     target.parentElement.classList.add('active');
                 }
             } catch (error) {
-                handleError(error);   
+                handleError(error);
             }
-            
+
             // update theme
             // apply theme
             // deactive category dropdown menu
@@ -56,7 +69,7 @@ window.addEventListener('load', async (event) => {
     createCategoryBtn.addEventListener('click', createCategory);
     deleteCategoryBtn.addEventListener('click', deleteCategory);
     contentBlocker.addEventListener('click', toggleSidebarDisplay);
-    for(const element of sidebarBtn) {
+    for (const element of sidebarBtn) {
         element.addEventListener('click', toggleSidebarDisplay);
     };
     sortTasksBtn.forEach(element => {
@@ -87,7 +100,7 @@ function showContent() {
     document.getElementById('bottom-area').style.display = 'block';
 };
 
-async function changeCurrentCategory (object, categoryId, categoryName) {
+async function changeCurrentCategory(object, categoryId, categoryName) {
     document.getElementById('tasks').style.display = 'none';
     document.getElementById('bottom-area').style.display = 'none';
     await updateCurrentCategoryToSession(categoryId, categoryName);
@@ -102,32 +115,36 @@ async function selectCategory(object) {
     const activeCategory = document.getElementsByClassName('category active')[0];
     let target = {};
 
-    if(object instanceof Element) {
+    if (object instanceof Element) {
         target = object;
     } else {
-        if(object instanceof PointerEvent || navigator.userAgent.indexOf('Firefox') != -1) {
+        if (object instanceof PointerEvent || navigator.userAgent.indexOf('Firefox') != -1) {
             target = object.target.tagName == 'SPAN' ? object.target.parentElement : object.target;
         } else {
-            if(navigator.userAgent.indexOf('Edg') != -1) {
+            if (navigator.userAgent.indexOf('Edg') != -1) {
                 target = object.parentElement;
             } else {
                 target = object;
             }
         }
     }
-    if(activeCategory) activeCategory.classList.remove('active');
+    if (activeCategory) activeCategory.classList.remove('active');
     target.classList.add('active');
 };
 
 async function getCategoriesByUser() {
-    await fetch('/categories', {
+    await customFetch('/categories', {
         method: 'GET'
     }).then(async response => {
-        if(response.ok) {
+        if (response.ok) {
             const categories = await response.json();
             const personalCategories = document.getElementById('personal-categories');
             const defaultCategories = document.getElementById('default-categories');
-            const currentCategory = await fetch('/categories/current').then(async response => { return Promise.resolve(await response.json()) });
+            const currentCategory = await customFetch('/categories/current', {
+                method: 'GET'
+            }).then(response => {
+                return response.json()
+            });
             let counter = 0;
 
             for await (const category of categories) {
@@ -135,20 +152,20 @@ async function getCategoriesByUser() {
                 const categoryId = category.id;
                 const categoryWrap = document.createElement('li');
                 const categoryText = document.createElement('span');
-                
+
                 categoryText.className = 'category-name';
                 categoryText.innerText = categoryName;
                 categoryWrap.className = 'category';
                 categoryWrap.prepend(categoryText);
-                
-                if(currentCategory.id == categoryId && currentCategory.name == categoryName) {
+
+                if (currentCategory.id == categoryId && currentCategory.name == categoryName) {
                     categoryWrap.classList.add('active');
                 }
-                
+
                 categoryWrap.addEventListener('click', async (event) => {
                     await changeCurrentCategory(event, categoryId, categoryName);
                 });
-                
+
                 categoryList.push({
                     id: categoryId,
                     element: categoryWrap
@@ -169,33 +186,35 @@ async function getCategoriesByUser() {
     });
 };
 
-async function getTasksCountByCategory () {
-    await fetch('/tasks/count').then(async response => {
-        if(response.ok) {
+async function getTasksCountByCategory() {
+    await customFetch('/tasks/count', {
+        method: 'GET'
+    }).then(async response => {
+        if (response.ok) {
             const tasksCount = await response.json();
             const allTasksCountBy = tasksCount.allTasksCountBy;
             const personalCategoriesCount = tasksCount.personalCategories;
 
-            for(const countData of personalCategoriesCount) {
+            for (const countData of personalCategoriesCount) {
                 const category = categoryList.filter(category => category.id == countData.CategoryId);
-                
-                if(category[0].element.children.length == 2) {
+
+                if (category[0].element.children.length == 2) {
                     const countElement = category[0].element.lastChild;
 
-                    if(countData.count > 0) {
+                    if (countData.count > 0) {
                         countElement.innerText = countData.count;
                     } else {
                         countElement.remove();
                     }
                 } else {
-                        const spanElement = document.createElement('span');
-                        spanElement.className = 'category tasks-count';
-                        spanElement.innerText = countData.count;
-                        category[0].element.appendChild(spanElement);
+                    const spanElement = document.createElement('span');
+                    spanElement.className = 'category tasks-count';
+                    spanElement.innerText = countData.count;
+                    category[0].element.appendChild(spanElement);
                 }
             }
-            
-            for(const [key, value] of Object.entries(allTasksCountBy)) {
+
+            for (const [key, value] of Object.entries(allTasksCountBy)) {
                 let categoryName = '';
 
                 switch (key) {
@@ -213,16 +232,16 @@ async function getTasksCountByCategory () {
                 }
 
                 const category = categoryList.filter(category => category.element.parentElement.id === 'default-categories' && category.element.firstChild.innerText === categoryName);
-                if(category[0].element.children.length == 2) {
+                if (category[0].element.children.length == 2) {
                     const countElement = category[0].element.lastChild;
 
-                    if(value > 0) {
+                    if (value > 0) {
                         countElement.innerText = value;
                     } else {
                         countElement.remove();
                     }
                 } else {
-                    if(value > 0 ) {
+                    if (value > 0) {
                         const spanElement = document.createElement('span');
                         spanElement.className = 'category tasks-count';
                         spanElement.innerText = value;
@@ -247,8 +266,8 @@ window.addEventListener('click', (event) => {
     const activeTaskDropdownMenu = document.getElementsByClassName('show-dropdown-menu-button active')[0];
     const activeCategoryMenu = document.getElementsByClassName('category-property-btn active')[0];
     const tasksSortBtn = document.getElementsByClassName('update-tasks-sort-button')[0];
-    if(activeTaskDropdownMenu != undefined && activeTaskDropdownMenu.contains(event.target) == false) activeTaskDropdownMenu.classList.remove('active');
-    if(activeCategoryMenu != undefined && activeCategoryMenu.contains(event.target) == false) {
+    if (activeTaskDropdownMenu != undefined && activeTaskDropdownMenu.contains(event.target) == false) activeTaskDropdownMenu.classList.remove('active');
+    if (activeCategoryMenu != undefined && activeCategoryMenu.contains(event.target) == false) {
         activeCategoryMenu.classList.remove('active');
         tasksSortBtn.classList.remove('active');
     }
@@ -256,17 +275,18 @@ window.addEventListener('click', (event) => {
 
 function createCategory() {
     const categoryName = document.getElementById('create-category-name');
-    const body = { name: categoryName.value };
-    
+    const body = {
+        name: categoryName.value
+    };
+
     fetch('/categories/category', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
     }).then(async response => {
-        if(response.ok) {
+        if (response.ok) {
             const personalCategories = document.getElementById('personal-categories');
             const liElemelnt = document.createElement('li');
             const spanElement = document.createElement('span');
@@ -289,29 +309,30 @@ function createCategory() {
     });
 };
 
-async function updateCurrentCategoryToSession (categoryId, categoryName) {
-    const body = { categoryId: categoryId, categoryName: categoryName };
+async function updateCurrentCategoryToSession(categoryId, categoryName) {
+    const body = {
+        categoryId: categoryId,
+        categoryName: categoryName
+    };
 
-    await fetch('/categories/current', {
+    await customFetch('/categories/current', {
         method: 'PUT',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-    },
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify(body)
     }).then(async response => {
-        if(!response.ok) throw response.status;
+        if (!response.ok) throw response.status;
     }).catch(error => {
         handleError(error);
     });
 };
 
 async function getTasksByUserAndCategory() {
-    await fetch('/tasks', {
-        method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    await customFetch('/tasks', {
+        method: 'GET'
     }).then(async response => {
-        if(response.ok) {
+        if (response.ok) {
             const tasks = await response.json();
             await reformatToHtml(tasks);
         } else {
@@ -324,32 +345,37 @@ async function getTasksByUserAndCategory() {
 
 function postTask() {
     const taskText = document.getElementById("post-task-msg").value;
-    const body = { taskText: taskText };
+    const body = {
+        taskText: taskText
+    };
     const currentCategory = document.getElementsByClassName('category active')[0].firstChild;
 
     if (!taskText) return;
-    if(currentCategory.parentElement.parentElement.id == 'default-categories') {
-        if(currentCategory.innerText == '오늘 할 일' || currentCategory.innerText == '계획된 일정') {
+    if (currentCategory.parentElement.parentElement.id == 'default-categories') {
+        if (currentCategory.innerText == '오늘 할 일' || currentCategory.innerText == '계획된 일정') {
             const deadline = new Date();
             deadline.setHours(0, 0, 0, 0);
-            Object.assign(body, { deadline: deadline });
+            Object.assign(body, {
+                deadline: deadline
+            });
         }
-    
-        if(currentCategory.innerText == '중요') {
+
+        if (currentCategory.innerText == '중요') {
             const importance = true;
-            Object.assign(body, { importance: importance });
+            Object.assign(body, {
+                importance: importance
+            });
         }
     }
-    
+
     fetch('/tasks', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
     }).then(async response => {
-        if(response.ok) {
+        if (response.ok) {
             const ul = document.getElementsByClassName('incomplete-ul')[0];
             const tasks = await response.json();
 
@@ -370,14 +396,17 @@ function viewUserInfo() {
 };
 
 function logout() {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 204) {
+    customFetch('/users/logout', {
+        method: 'GET'
+    }).then(response => {
+        if (response.ok) {
             location.href = "/";
+        } else {
+            throw response.status;
         }
-    }
-    xhr.open("delete", "/users/logout", true);
-    xhr.send();
+    }).catch(error => {
+        handleError(error);
+    });
 };
 
 function resizeWidthTasksAndPostTask() {
@@ -406,18 +435,17 @@ async function searchTasks() {
     try {
         const term = document.getElementById("search-text").value;
         const activeCurrentCategory = document.getElementsByClassName('category active')[0];
-        if(term) { 
-            await fetch('/tasks/search/' + term, {
-                method: 'GET',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        if (term) {
+            await customFetch('/tasks/search/' + term, {
+                method: 'GET'
             }).then(async response => {
-                if(response.ok) {
+                if (response.ok) {
                     const tasks = await response.json();
 
                     document.getElementById('tasks').style.display = 'none';
                     document.getElementById('bottom-area').style.display = 'none';
                     document.getElementsByClassName("category-title-text")[0].innerText = "검색 결과";
-                    if(activeCurrentCategory) {
+                    if (activeCurrentCategory) {
                         activeCurrentCategory.classList.remove('active');
                         const category = categoryList.filter(category => category.element == activeCurrentCategory);
                         categoryBeforeSearch = category[0];
@@ -427,7 +455,7 @@ async function searchTasks() {
 
                     await reformatToHtml(tasks);
                     resizeWidthTasksAndPostTask();
-                    showContent();
+                    document.getElementById('tasks').style.display = 'block';
                 } else {
                     throw response.status;
                 }
@@ -435,7 +463,7 @@ async function searchTasks() {
                 handleError(error);
             });
         } else {
-            if(activeCurrentCategory == undefined) {
+            if (activeCurrentCategory == undefined) {
                 document.getElementsByClassName('category-property-btn')[0].classList.toggle('hide');
                 await changeCurrentCategory(categoryBeforeSearch.element, categoryBeforeSearch.id, categoryBeforeSearch.element.firstChild.innerText);
             }
@@ -447,13 +475,12 @@ async function searchTasks() {
 
 async function deleteCategory() {
     const activeCategory = document.getElementsByClassName('category active')[0];
-    if(activeCategory || activeCategory.parentElement.id == 'personal-categories') {
-        if(confirm("카테고리를 삭제 하시겠습니까?")) {
-            await fetch('/categories/category', {
-                method: 'DELETE',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    if (activeCategory || activeCategory.parentElement.id == 'personal-categories') {
+        if (confirm("카테고리를 삭제 하시겠습니까?")) {
+            await customFetch('/categories/category', {
+                method: 'DELETE'
             }).then(async response => {
-                if(response.ok) {
+                if (response.ok) {
                     activeCategory.remove();
                     const workCategory = document.getElementsByClassName('category-name work')[0];
                     await changeCurrentCategory(workCategory, null, '작업');
@@ -467,47 +494,31 @@ async function deleteCategory() {
     }
 };
 
-async function setCurrentCategory() {
-    fetch('/api/category/current', {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    }).then(response => {
-        if(response.ok) {
-            // update content title
-            // update sidebar category active
-            // update task sort
-        } else {
-            throw response.status;
-        }
-    }).catch(error => {
-        handleError(error);
-    });
-};
-
 async function updateContent() {
     const activeCategory = document.getElementsByClassName('category active')[0];
     const categoryTitle = document.getElementsByClassName('category-title')[0];
-    const currentCategory = await fetch('/categories/current').then(response => response.json());
+    const currentCategory = await customFetch('/categories/current', {
+        method: 'GET'
+    }).then(response => {
+        return response.json()
+    });
     const theme = document.getElementsByClassName('theme-color ' + currentCategory.theme)[0];
     const previousCategory = document.querySelector('.set-theme-button.active');
 
-    if(activeCategory) {
-        categoryTitle.firstChild.innerText = activeCategory.firstChild.innerText;    
+    if (activeCategory) {
+        categoryTitle.firstChild.innerText = activeCategory.firstChild.innerText;
     } else {
         categoryTitle.firstChild.innerText = categoryBeforeSearch.firstChild.innerText;
     }
-    if(!activeCategory || activeCategory.parentNode.id == 'personal-categories') {
+    if (!activeCategory || activeCategory.parentNode.id == 'personal-categories') {
         categoryTitle.classList.add('personal-category');
     } else {
         categoryTitle.classList.remove('personal-category');
     }
 
-    if(previousCategory) previousCategory.classList.remove('active');
+    if (previousCategory) previousCategory.classList.remove('active');
 
-    if(!currentCategory.theme) {
+    if (!currentCategory.theme) {
         document.querySelector('.theme-color.cornflowerblue').parentElement.classList.add('active');
         document.body.dataset.theme = 'cornflowerblue';
     } else {
@@ -525,8 +536,8 @@ async function renameCategory() {
     const ctx = canvas.getContext("2d");
     const font = '30px bold';
     const inputMinWidth = 10;
-    
-    if(categoryTitle.classList.contains('personal-category')) {
+
+    if (categoryTitle.classList.contains('personal-category')) {
         form.setAttribute('action', '#');
         form.setAttribute('onsubmit', 'return false');
         form.setAttribute('class', 'category-title personal-category');
@@ -547,8 +558,8 @@ async function renameCategory() {
             input.style.width = Math.max(categoryTitle.getBoundingClientRect().width, ctx.measureText(input.value).width) + inputMinWidth + "px";
         });
         input.addEventListener('keydown', (e) => {
-            if(e.key == 'Enter') input.blur();
-            if(e.key == 'Escape') {
+            if (e.key == 'Enter') input.blur();
+            if (e.key == 'Escape') {
                 input.removeEventListener('focusout', updateCategoryName);
                 form.replaceWith(categoryTitle);
             }
@@ -556,19 +567,20 @@ async function renameCategory() {
         input.addEventListener('focusout', updateCategoryName);
 
         function updateCategoryName() {
-            if(!input.value || input.value == categoryTitle.firstChild.innerText) {
+            if (!input.value || input.value == categoryTitle.firstChild.innerText) {
                 form.replaceWith(categoryTitle);
             } else {
-                const body = { categoryName: input.value };
+                const body = {
+                    categoryName: input.value
+                };
                 fetch('/categories/category', {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(body)
                 }).then(response => {
-                    if(response.ok) {
+                    if (response.ok) {
                         categoryTitle.firstChild.innerText = input.value;
                         document.getElementsByClassName('category active')[0].firstChild.innerText = input.value;
                         input.removeEventListener('focusout', updateCategoryName);
@@ -584,29 +596,9 @@ async function renameCategory() {
     }
 };
 
-function handleError(error) {
-    if(error === 400) {
-        alert('잘못된 요청입니다.');
-    }
-    else if(error === 401) {
-        alert('인증되지 않아 이용할수 없습니다.');
-    }
-    else if(error === 403) {
-        alert('숨겨진 리소스입니다.');
-    }
-    else if(error === 404) {
-        alert('리소스를 찾을수 없습니다.');
-    }
-    else if(error === 500){
-        alert('서버에 요청을 실패하였습니다.');
-    } else {
-        console.error(error);
-    }
-};
-
 function toggleSidebarDisplay() {
     const sidebar = document.getElementsByClassName('sidebar')[0];
-    if(sidebar) {
+    if (sidebar) {
         sidebar.classList.toggle('show');
     }
 };
@@ -614,17 +606,18 @@ function toggleSidebarDisplay() {
 function updateTasksOrderToCategory(element) {
     const sortBtn = element.target.tagName === 'SPAN' ? element.target.parentNode : element.target;
     const sortType = sortBtn.classList[1].slice(5);
-    const body = { sortType: sortType };
+    const body = {
+        sortType: sortType
+    };
 
     fetch('/categories/category/sort', {
         method: 'PUT',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
     }).then(response => {
-        if(response.ok) {
+        if (response.ok) {
             sortTasks(sortType);
             const sortOrder = document.getElementsByClassName('sort-order-contianer')[0];
             const tasksOrderButton = document.getElementsByClassName('update-tasks-sort-button')[0];
@@ -654,22 +647,22 @@ async function sortTasks(sortType) {
                     const nameB = b.childNodes[1].innerText.toUpperCase();
                     const importanceA = a.children[2].value;
                     const importanceB = b.children[2].value;
-            
+
                     if (importanceA < importanceB) {
-                        if(sortOrder == 'descending') return 1;
+                        if (sortOrder == 'descending') return 1;
                         return -1;
                     } else if (importanceA > importanceB) {
-                        if(sortOrder == 'descending') return -1;
+                        if (sortOrder == 'descending') return -1;
                         return 1;
                     } else {
-                        if(nameA < nameB) {
+                        if (nameA < nameB) {
                             return -1;
                         }
-                        if(nameA > nameB) {
+                        if (nameA > nameB) {
                             return 1;
                         }
                         return 0;
-                    }        
+                    }
                 });
                 break;
 
@@ -679,22 +672,22 @@ async function sortTasks(sortType) {
                     const nameB = elementB.childNodes[1].innerText.toUpperCase();
                     const deadlineA = getDeadlineDateFromTask(elementA);
                     const deadlineB = getDeadlineDateFromTask(elementB);
-            
+
                     if (deadlineA == null && deadlineB != null) {
                         return 1;
                     } else if (deadlineA != null && deadlineB == null) {
                         return -1;
                     } else if (deadlineA < deadlineB) {
-                        if(sortOrder == 'descending') return 1;
+                        if (sortOrder == 'descending') return 1;
                         return -1;
                     } else if (deadlineA > deadlineB) {
-                        if(sortOrder == 'descending') return -1;
+                        if (sortOrder == 'descending') return -1;
                         return 1;
                     } else {
-                        if(nameA < nameB) {
+                        if (nameA < nameB) {
                             return -1;
                         }
-                        if(nameA > nameB) {
+                        if (nameA > nameB) {
                             return 1;
                         }
                         return 0;
@@ -706,18 +699,18 @@ async function sortTasks(sortType) {
                 sortedTasks = Array.from(element.children).sort((elementA, elementB) => {
                     const nameA = elementA.childNodes[1].innerText.toUpperCase();
                     const nameB = elementB.childNodes[1].innerText.toUpperCase();
-            
+
                     if (elementA.dataset.createdAt < elementB.dataset.createdAt) {
-                        if(sortOrder == 'descending') return 1;
+                        if (sortOrder == 'descending') return 1;
                         return -1;
                     } else if (elementA.dataset.createdAt > elementB.dataset.createdAt) {
-                        if(sortOrder == 'descending') return -1;
+                        if (sortOrder == 'descending') return -1;
                         return 1;
                     } else {
-                        if(nameA < nameB) {
+                        if (nameA < nameB) {
                             return -1;
                         }
-                        if(nameA > nameB) {
+                        if (nameA > nameB) {
                             return 1;
                         }
                         return 0;
@@ -727,24 +720,24 @@ async function sortTasks(sortType) {
 
             case 'name':
                 sortedTasks = Array.from(element.children).sort((elementA, elementB) => {
-                        const nameA = elementA.childNodes[1].innerText.toUpperCase();
-                        const nameB = elementB.childNodes[1].innerText.toUpperCase();
-                        if(nameA < nameB) {
-                            if(sortOrder == 'descending') return 1;
-                            return -1;
-                        }
-                        if(nameA > nameB) {
-                            if(sortOrder == 'descending') return -1;
-                            return 1;
-                        }
-                        return 0;
-                    });
+                    const nameA = elementA.childNodes[1].innerText.toUpperCase();
+                    const nameB = elementB.childNodes[1].innerText.toUpperCase();
+                    if (nameA < nameB) {
+                        if (sortOrder == 'descending') return 1;
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        if (sortOrder == 'descending') return -1;
+                        return 1;
+                    }
+                    return 0;
+                });
                 break;
             default:
                 break;
         }
 
-        element.textContent= '';
+        element.textContent = '';
         sortedTasks.map(item => element.appendChild(item));
     });
 };
@@ -755,7 +748,7 @@ function setTasksSortOrder() {
     const sortOrderText = sortOrderBtn.classList[1] == 'ascending' ? 'descending' : 'ascending';
     const sortType = sortOrderBtn.dataset.sortType;
 
-    sortOrderBtn.classList.replace(sortOrderBtn.classList[1], sortOrderText); 
+    sortOrderBtn.classList.replace(sortOrderBtn.classList[1], sortOrderText);
     sortOrderIcon.className = sortOrderIcon.className == 'fa fa-long-arrow-up' ? 'fa fa-long-arrow-down' : 'fa fa-long-arrow-up';
     sortTasks(sortType);
 };
@@ -778,14 +771,14 @@ function reverseTasksSort(sortType) {
                 break;
         }
 
-        element.textContent= '';
+        element.textContent = '';
         sortedTasks.map(item => element.appendChild(item));
     });
 };
 
-function getDeadlineDateFromTask (element) {
-    if(element.children[5].childNodes.length > 0) {
-        if(element.children[5].firstChild.className == 'deadline-text-wrap') {
+function getDeadlineDateFromTask(element) {
+    if (element.children[5].childNodes.length > 0) {
+        if (element.children[5].firstChild.className == 'deadline-text-wrap') {
             return element.children[5].firstChild.dataset.deadlineDate;
         } else {
             return null;

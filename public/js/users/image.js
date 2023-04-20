@@ -59,7 +59,6 @@ async function deleteProfileImg() {
             }
         }
         xhr.open('delete', '/users/profile/img', true);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.send();
     }
 }
@@ -101,7 +100,6 @@ async function uploadFile() {
                 }
             }
             xhr.open('post', '/users/profile/img', true);
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
             xhr.send(formData);
         });
     }

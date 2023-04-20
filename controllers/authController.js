@@ -51,7 +51,7 @@ module.exports = {
                 }
                 res.status(200).send();
             } else {
-                throw 'Not found';
+                throw '인증 정보를 찾지 못하거나 시간이 만료되어 인증에 실패하였습니다.';
             }
         } catch (error) {
             next(error);
