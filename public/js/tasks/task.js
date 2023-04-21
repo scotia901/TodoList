@@ -208,27 +208,29 @@ async function reformatTask(taskData) {
         const completedTasksBtnContainer = document.getElementsByClassName('completed-tasks-btn-container')[0];
         const activeCategory = document.getElementsByClassName('category active')[0];
         const completedBtn = event.target.tagName == 'SPAN' ? event.target.parentElement : event.target;
-        const taskText = task.getElementsByClassName('task-text')[0];
+        const taskText = event.target.tagName == 'SPAN' ? event.target.parentElement.parentElement.children[1].firstChild : event.target.parentElement.children[1].firstChild;
         const body = { taskId: taskData.id }
     
-        fetch('/tasks/toggle/completed', {
+        customFetch('/tasks/toggle/completed', {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         }).then(response => {
             if(response.ok) {
+                const sortType = document.querySelector('.sort-order-button').dataset.sortType;
+                const isSortActive = document.querySelector('.sort-order-contianer.active');
+
                 completedBtn.value ^= 1;
                 taskText.classList.toggle('completed');
     
                 if(completedBtn.value == 1) {
-                    completedUl.appendChild(task);
+                    completedUl.prepend(task);
                     completedCount.innerText = new Number(completedCount.innerText) + 1;
                     if(completedCount.innerText == '1') completedTasksBtnContainer.classList.remove('hidden');
                 } else {
-                    incompleteUl.appendChild(task);
+                    incompleteUl.prepend(task);
                     completedCount.innerText = new Number(completedCount.innerText) - 1;
                     if(completedCount.innerText == '0') completedTasksBtnContainer.classList.add('hidden');
                 }
@@ -241,10 +243,14 @@ async function reformatTask(taskData) {
                     }
                 } else {
                     const spanElement = document.createElement('span');
+
                     spanElement.className = 'category tasks-count';
                     spanElement.innerText = incompleteUl.children.length;
-                    activeCategory.appendChild(spanElement);
+                    activeCategory.prepend(spanElement);
                 }
+
+                getTasksCountByCategory();
+                if(isSortActive) sortTasks(sortType);
             } else {
                 throw response.status;
             }
@@ -256,11 +262,10 @@ async function reformatTask(taskData) {
     function deleteTask () {
         if(confirm('작업을 삭제 하시겠습니까?')) {
             const body = { taskId: taskData.id };
-            fetch('/tasks', {
+            customFetch('/tasks', {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(body)
             }).then(response => {
@@ -279,19 +284,18 @@ async function reformatTask(taskData) {
     function updateText () {
         const taskTextInput = prompt("수정할 내용을 입력해 주세요.");
         if(!taskTextInput) return;
-        const body = { taskId: taskData.id, taskText: taskTextInput }
-        const taskText = task.children[1]
+        const body = { taskId: taskData.id, taskText: taskTextInput };
+        const taskText = task.children[1];
         
-        fetch('/tasks/update/text', {
+        customFetch('/tasks/update/text', {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         }).then(response => {
             if(response.ok) {
-                taskText.innerText = taskTextInput;
+                taskText.firstChild.innerText = taskTextInput;
             } else {
                 throw response.status;
             }
@@ -304,11 +308,10 @@ async function reformatTask(taskData) {
         const toggleImportanceBtn = event.target.tagName == 'SPAN' ? event.target.parentElement : event.target;
         const starIcon = toggleImportanceBtn.firstChild;
         const body = { taskId: taskData.id }
-        fetch('/tasks/toggle/importance', {
+        customFetch('/tasks/toggle/importance', {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         }).then(response => {
@@ -386,11 +389,10 @@ async function reformatTask(taskData) {
         const taskDeadline = event.target.value != '' ? event.target.value : '0000-00-00';
         const body = { taskId: taskData.id, taskDeadline: taskDeadline };
 
-        fetch('/tasks/update/deadline', {
+        customFetch('/tasks/update/deadline', {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         }).then(response => {

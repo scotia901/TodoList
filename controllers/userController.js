@@ -175,10 +175,7 @@ module.exports = {
             const code = req.query.code;
             const token = req.query.state;
             const snsType = req.path.slice(7);
-
-            console.log(req.session.auth.CSRFToken)
-            console.log(token)
-
+            
             if(req.session.auth.CSRFToken != token) throw 'Bad request';
             const snsUserData = await userService.getUserFromSns(code, token, snsType);
 

@@ -54,10 +54,6 @@ window.addEventListener('load', async (event) => {
             } catch (error) {
                 handleError(error);
             }
-
-            // update theme
-            // apply theme
-            // deactive category dropdown menu
         });
     });
     initSortBtn.addEventListener('click', initializeTasksSort);
@@ -279,7 +275,7 @@ function createCategory() {
         name: categoryName.value
     };
 
-    fetch('/categories/category', {
+    customFetch('/categories/category', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -301,6 +297,7 @@ function createCategory() {
             });
             personalCategories.appendChild(liElemelnt);
             categoryName.value = '';
+            categoryList.push({id: categoryData.id, element: liElemelnt});
         } else {
             throw response.status;
         }
@@ -368,7 +365,7 @@ function postTask() {
         }
     }
 
-    fetch('/tasks', {
+    customFetch('/tasks', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -481,9 +478,9 @@ async function deleteCategory() {
                 method: 'DELETE'
             }).then(async response => {
                 if (response.ok) {
+                    categoryList = categoryList.filter(category => category.element !== activeCategory);
                     activeCategory.remove();
-                    const workCategory = document.getElementsByClassName('category-name work')[0];
-                    await changeCurrentCategory(workCategory, null, '작업');
+                    await changeCurrentCategory(categoryList[0].element, categoryList[0].id, '작업');
                 } else {
                     throw response.status;
                 }
@@ -573,7 +570,7 @@ async function renameCategory() {
                 const body = {
                     categoryName: input.value
                 };
-                fetch('/categories/category', {
+                customFetch('/categories/category', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -610,7 +607,7 @@ function updateTasksOrderToCategory(element) {
         sortType: sortType
     };
 
-    fetch('/categories/category/sort', {
+    customFetch('/categories/category/sort', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'

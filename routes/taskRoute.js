@@ -2,9 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const Router = express.Router();
 const TaskController = require('../controllers/taskController');
-const authMiddleware = require('../middleware/authMiddleware');
-
-Router.use(authMiddleware.verifyCSRFToken);
 
 Router.get('/', async (req, res, next) => {
     await TaskController.getTasksByUserAndCategory(req, res, next);
@@ -19,7 +16,7 @@ Router.delete('/', async (req, res, next) => {
 });
 
 Router.get('/count', async (req, res, next) => {
-    TaskController.countTasksByCategory(req, res, next);
+    await TaskController.countTasksByCategory(req, res, next);
 });
 
 Router.get("/search/:term", async (req, res, next) => {

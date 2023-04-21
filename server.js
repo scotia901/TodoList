@@ -10,6 +10,7 @@ async function main () {
     const MySQLStore = require('express-mysql-session')(session);
     const cookieParser = require('cookie-parser');
     const helmet = require('helmet');
+    const favicon = require('serve-favicon')
     const sessDbOptions = {
         host: process.env.MYSQL_HOST,
         port: process.env.MYSQL_PORT,
@@ -40,6 +41,8 @@ async function main () {
     const userRoutes = require('./routes/userRoute');
     const authRoutes = require('./routes/authRoute');
 
+    app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
+    // app.use(favicon(__dirname + '/public/images/favicon.ico'));
     app.set('view engine', 'pug');
     app.set('views', [path.join(__dirname, 'views'), path.join(__dirname, 'views/users')]);
     app.use(helmet.xssFilter());

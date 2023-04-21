@@ -99,7 +99,8 @@ module.exports = {
 
             await TaskService.deleteTasksByCategory(userId, categoryId);
             await CategoryService.deleteCategoryByUser(userId, categoryId);
-            req.session.category = '';
+            const defaultWork = await CategoryService.getDefaultWorkByUserId(userId);
+            req.session.category = defaultWork.id;
             req.session.save();
             res.status(200).send();
         } catch (error) {

@@ -57,6 +57,7 @@ module.exports = {
                 const elapsedTime = req.session.cookie.originalMaxAge - req.session.cookie.maxAge;
                 const refreshTime = 5 * 60 * 1000;
                 
+                // 세션 시간이 5분이 넘어가면 세션 갱신, 만약 계속로그인상태이거나 소셜로그인이면 있으면 세션 기간 1주일로 설정
                 if (elapsedTime > refreshTime) {
                     const oneWeek = 7 * 24 * 60 * 60 * 1000;
                     const user = req.session.user;
