@@ -69,6 +69,10 @@ async function main () {
         }
     });
 
+    app.get('/health', async (req, res, next) => {
+        res.send('ok');
+    });
+
     app.use('/users', userRoutes);
     app.use('/categories', categoryRoutes);
     app.use('/tasks', taskRoutes);

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
-    "initDb": "node ./models/userModel.js init"
+    "initDb": "node ./models/todoModel.js init"
   },
   "keywords": [],
   "author": "",
