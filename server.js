@@ -77,16 +77,11 @@ async function main () {
     app.use('/categories', categoryRoutes);
     app.use('/tasks', taskRoutes);
     app.use('/auth', authRoutes);
-    app.listen(process.env.SERVER_HTTP_PORT, () => {
+    app.listen(process.env.SERVER_PORT, () => {
         const appOpenTime = new Date();
         console.log(`App open on ${appOpenTime.toLocaleString()} and listening on Port:${process.env.SERVER_PORT}`);
     });
 
-    app.listen(process.env.SERVER_HTTPS_PORT, () => {
-        const appOpenTime = new Date();
-        console.log(`App open on ${appOpenTime.toLocaleString()} and listening on Port:${process.env.SERVER_PORT}`);
-    });
-    
     app.use(errorMiddleware.logErrors);
     app.use(errorMiddleware.clientErrorHandler);
     app.use(errorMiddleware.errorHandler);
