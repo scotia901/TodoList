@@ -5,7 +5,7 @@ module.exports = {
     verifyCSRFToken: async (req, res, next) => {
         try {
             const splitedPath = req.path.split('/');
-            
+            console.log(splitedPath);
             // 웹 페이지 로드시 CSRF 토큰 생성
             if(splitedPath[1] == '' || splitedPath[2] == 'login' || splitedPath[2] == 'profile') {
                 if(splitedPath.length <= 3) {

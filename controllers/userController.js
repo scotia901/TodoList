@@ -21,7 +21,7 @@ module.exports = {
                 "pageTitle": process.env.PAGE_TITLE,
                 "naverApi_url": naverApi_url,
                 "kakaoApi_url": kakaoApi_url,
-                "recaptchaClientKey": recaptchaClient,
+                "recaptchaClientKey": recaptchaClient
             });
         } catch (error) {
             next(error);
@@ -30,7 +30,10 @@ module.exports = {
 
     renderResetPasswordPage: (req, res, next) => {
         try {
-            res.render('reset_pswd');
+            res.render('reset_pswd', {
+                "pageTitle": process.env.PAGE_TITLE,
+                "CSRFToken": req.session.auth.CSRFToken
+            });
         } catch (error) {
             next(error);
         }
@@ -38,31 +41,36 @@ module.exports = {
 
     renderFindPasswordPage: (req, res) => {
         res.render('users/find_pswd', {
-            "pageTitle": process.env.PAGE_TITLE
+            "pageTitle": process.env.PAGE_TITLE,
+            "CSRFToken": req.session.auth.CSRFToken
         });
     },
 
     renderUpdatePasswordPage: (req, res) => {
         res.render('users/edit_pswd', {
-            "pageTitle": process.env.PAGE_TITLE
+            "pageTitle": process.env.PAGE_TITLE,
+            "CSRFToken": req.session.auth.CSRFToken
         });
     },
 
     renderUpdateEmailPage: (req, res) => {
         res.render('users/edit_email', {
-            "pageTitle": process.env.PAGE_TITLE
+            "pageTitle": process.env.PAGE_TITLE,
+            "CSRFToken": req.session.auth.CSRFToken
         });
     },
 
     renderJoinPage: (req, res) => {
         res.render('users/join', {
-            "pageTitle": process.env.PAGE_TITLE
+            "pageTitle": process.env.PAGE_TITLE,
+            "CSRFToken": req.session.auth.CSRFToken
         });
     },
 
     renderFindIdPage: (req, res) => {
         res.render('users/find_id', {
-            "pageTitle": process.env.PAGE_TITLE
+            "pageTitle": process.env.PAGE_TITLE,
+            "CSRFToken": req.session.auth.CSRFToken
         });
     },
 

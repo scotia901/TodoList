@@ -42,7 +42,6 @@ async function main () {
     const authRoutes = require('./routes/authRoute');
 
     app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
-    // app.use(favicon(__dirname + '/public/images/favicon.ico'));
     app.set('view engine', 'pug');
     app.set('views', [path.join(__dirname, 'views'), path.join(__dirname, 'views/users')]);
     app.use(helmet.xssFilter());

@@ -167,7 +167,6 @@ async function join() {
         }
         xhr.open("post", "/users/join", true);
         xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         xhr.send(body);
     }
 }
@@ -214,7 +213,6 @@ function findId() {
             }
         }
         xhr.open("get", "/users/find/id/" + emailValue, true);
-        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         xhr.send();
     }
 }
@@ -241,7 +239,6 @@ function findPswd() {
             }
         }
         xhr.open("get", "/users/find/pswd/" + idValue + "/"  + emailValue, true);
-        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         xhr.send();
     }
 }
@@ -264,7 +261,6 @@ function changePswd() {
         }
         xhr.open("put", "/users/find/pswd/reset", true);
         xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         xhr.send(params);
     }
 }
@@ -302,7 +298,6 @@ function login() {
             }
             xhr.open("post", "/users/login", true);
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             xhr.send(params);
         }
     }
@@ -328,3 +323,18 @@ function showMessageToAuth(email) {
     divElement.appendChild(buttonDivElement);
     formElement.replaceWith(divElement);
 }
+
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+function csrfSafeMethod(method) {
+    return (/^(GET|HEAD|OPTIONS)$/.test(method));
+}
+const o = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function() {
+    const res = o.apply(this, arguments);
+    const err = new Error();
+    if (!csrfSafeMethod(arguments[0])) {
+        this.setRequestHeader('csrf-token', csrfToken);
+        this.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    }
+    return res;
+};
