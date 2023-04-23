@@ -3,6 +3,10 @@ const MSG_SUCCESS_EMAIL_AUTH = '이메일 인증이 완료되었습니다.';
 const MSG_SUCCESS_NEW_EMAIL = '새로운 이메일로 변경이 완료되었습니다.';
 const MSG_SUCCESS_NEW_PSWD = '새로운 비밀번호로 변경이 완료되었습니다.';
 const MSG_SUCCESS_NEW_NiCKNAME = '새로운 별명으로 변경이 완료되었습니다.';
+const MSG_SUCCESS_DELETE_USER = '탈퇴가 완료되었습니다.';
+const MSG_SUCCESS_DELETE_SNS_USER = 'SNS 연동 해제가 완료되었습니다.';
+const MSG_QUERY_DELETE_USER = '탈퇴 하시겠습니까?';
+const MSG_QUERY_DELETE_SNS_USER = 'SNS 계정 연동을 해제 하시겠습니까?';
 
 var isAuthCode = false;
 
@@ -103,17 +107,19 @@ function verifyNewPswd2() {
 
 function deleteUser() {
     try {
-        const isConfirm = confirm('정말로 탈퇴 하시겠습니까?');
+        const answerToDeleteSnsUser = confirm(MSG_QUERY_DELETE_USER);
         
-        if(isConfirm) {
-            fetch('/users/delete/user',{
-                method: 'DELETE'
-            }).then(response => {
-                if(response.ok) {
-                    alert('회원 탈퇴에 성공하였습니다.');
+        if(answerToDeleteSnsUser == true) {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.onreadystatechange = async function() {
+                if(this.readyState == 4 && this.status == 200) {
+                    alert(MSG_SUCCESS_DELETE_USER);
                     window.location.href = '/users/login';
                 }
-            });
+            }
+            xhr.open('delete', '/users/delete/user', true);
+            xhr.send();
         }
     } catch (error) {
         handleError(error);
@@ -258,7 +264,7 @@ function updatePswd() {
                     throw this.status;
                 }
                 if(this.readyState == 4 && this.status == 401) {
-                    appendErrorMsg('current_pswd_error_msg', ERR_MISMATCH_PSWD_MSG);
+                    appendErrorMsg('current_pswd_error_msg', ERR_MISMATCH_CURRENT_PSWD_MSG);
                 }
             }
             xhr.open('put', '/users/update/pswd', true);
@@ -369,17 +375,17 @@ function changeNickname() {
 
 async function resetPassword() {
     try {
-        const body = {password: password};
-    
-        await fetch('/users/find/pswd/reset', {
-            method: 'PUT',
-            body: JSON.stringify(body)
-        }).then(response => {
-            if(response.ok) {
+        const params = 'password=' + password;
+        const xhr = new XMLHttpRequest();
+            
+        xhr.onreadystatechange = async function() {
+            if(this.readyState == 4 && this.status == 200) {
                 alert(MSG_SUCCESS_NEW_PSWD);
                 window.location.href = '/';
             }
-        });
+        }
+        xhr.open('put', '/users/find/pswd/reset', true);
+        xhr.send(params);
     } catch (error) {
         handleError(error);
     }
@@ -387,18 +393,19 @@ async function resetPassword() {
 
 async function deleteSnsUser() {
     try {
-        const answerToDeleteSnsUser = confirm('SNS 계정 연동을 해제 하시겠습니까?');
-    
-        if(answerToDeleteSnsUser === true) {
+        const answerToDeleteSnsUser = confirm(MSG_QUERY_DELETE_SNS_USER);
+        
+        if(answerToDeleteSnsUser == true) {
             const xhr = new XMLHttpRequest();
-    
+            
             xhr.onreadystatechange = async function() {
                 if(this.readyState == 4 && this.status == 200) {
-                    const url = await response.text();
-                    window.location.href = url;
+                    alert(MSG_SUCCESS_DELETE_SNS_USER);
+                    window.location.href = this.responseText;
                 }
             }
             xhr.open('delete', '/users/delete/snsuser', true);
+            xhr.send();
         }
     } catch (error) {
         handleError(error);

@@ -1,8 +1,5 @@
 extends layout.pug
 
-block append meta
-    meta(name="csrf-token" content=CSRFToken)
-
 block append scripts
     script(type="text/javascript" src="/js/users/app.js")
     script(src="https://www.google.com/recaptcha/api.js" async defer)

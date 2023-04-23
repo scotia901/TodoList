@@ -26,7 +26,7 @@ Router.get('/delete/:snstype', (req, res, next) => {
     UserController.deleteSnsUser(req, res, next);
 });
 
-Router.get('/delete/:snstype', (req, res, next) => {
+Router.get('/delete/:userId', (req, res, next) => {
     UserController.deleteUserById(req, res, next);
 });
 

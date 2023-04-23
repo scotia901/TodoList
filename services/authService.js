@@ -11,7 +11,7 @@ const recaptchaSecret = process.env.RECAPTCHA_SECRET;
 
 module.exports = {
     verifyRecaptcha: async (recaptcha) => {
-        const params = '?secret=' + recaptchaSecret + '&response=' + recaptcha
+        const params = '?secret=' + recaptchaSecret + '&response=' + recaptcha;
         const response = await fetch('https://www.google.com/recaptcha/api/siteverify' + params, {
             method: "POST"
         });

@@ -5,15 +5,15 @@ module.exports = {
     verifyCSRFToken: async (req, res, next) => {
         try {
             const splitedPath = req.path.split('/');
-            console.log(splitedPath);
+
             // 웹 페이지 로드시 CSRF 토큰 생성
             if(splitedPath[1] == '' || splitedPath[2] == 'login' || splitedPath[2] == 'profile') {
-                if(splitedPath.length <= 3) {
+                if(splitedPath.length <= 3 && /^(GET|HEAD|OPTIONS)$/.test(req.method)) {
                     const token = await CryptoUtility.createRandomHash(64, 'hex');
-                    req.session.auth = { CSRFToken: token }
+                    req.session.auth = { CSRFToken: token };
                 }
             }
-            
+
             if(req.query.state) { // SNS 소셜 연동 CSRF 체크
                 const state = req.query.state;
                 if(req.session.auth.CSRFToken == state) {
@@ -145,8 +145,7 @@ module.exports = {
             const password = req.body.currentPswd;
             const userId = req.session.user.id;
             const isAuth = await AuthService.verifyPswdByUserId(userId, password);
-            const token = req.session.auth.token;
-            if (isAuth == true && token) {
+            if (isAuth == true) {
                 next();
             } else {
                 throw 'Unauthorized';

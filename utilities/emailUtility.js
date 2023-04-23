@@ -21,7 +21,7 @@ module.exports = {
                             <a href="${SERVER_HOST}/auth/join?&token=${encodeURIComponent(token)}">
                             가입 완료하기</a>`;
             const result = await transport.sendMail({
-                from: ADMIN_EMAIL,
+                from: "noreply@scotia901-jeonghwan.com",
                 to: email,
                 subject: subject,
                 html: content
