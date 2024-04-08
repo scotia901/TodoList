@@ -1,9 +1,7 @@
 # TodoList
-
+   ![firstView](https://github.com/scotia901/TodoList/assets/68411997/f60fbb14-570d-42e4-a29d-48536af27cba)
 # 소개
 * MS To do 윈도우 앱을 참조하여 To do 웹 어플리케이션을 만들었습니다.
-* AWS에서 구동시켰습니다.
-* 데모 사이트 : https://scotia901-jeonghwan.com/
 
 # 기술 스택
 * FrontEnd
@@ -42,25 +40,18 @@
     * 이메일, 별명, 비밀번호 변경
 
 4. 보안
-   * Prevnet brute force attack
-   * Prevnet SQL injection attack
-   * Prevent Cross-Site Scripting
-   * Prevent Cross-Site Request Forgery
+   * brute force attack
+   * SQL injection attack
+   * Cross-Site Scripting
+   * Cross-Site Request Forgery
 
 # 실행 화면
 1. 로그인 화면
-   * 회원 가입
-   * 아이디 및 비밀번호 찾기
+   ![loginPage](https://github.com/scotia901/TodoList/assets/68411997/021748bb-bac1-4209-b61d-34239f845303)
+   
 3. 메인 화면
-   * Todo 생성후 화면
-   * 정렬 전후 화면
-   * 완료 및 데드라인 화면
-   * 새로운 카테고리 화면
+   ![mainPage](https://github.com/scotia901/TodoList/assets/68411997/b92eb447-91a8-4ecd-820f-97076b336b43)
+   ![categoryEdit](https://github.com/scotia901/TodoList/assets/68411997/2b66aa3c-43bf-475a-a716-78c4521c80f6)
+   
 5. 프로필 화면
-   * 프로필 사진 변경
-   * 비밀번호 변경
-   * 이메일 변경
-   * 별명 변경
-   * 탈퇴
-7. 인증
-   * 회원가입, 비밀번호 변경을 하기위하 이메일 인증화면을 보여준다.
+   ![userInfo](https://github.com/scotia901/TodoList/assets/68411997/9102fdc7-46a9-4114-ada4-8bc664df8419)
